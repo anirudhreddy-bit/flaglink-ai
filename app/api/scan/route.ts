@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { scans } from "@/lib/db/schema";
 
 const SYSTEM_PROMPT = `You are a legal expert analyzing Terms & Conditions for potential risks. 
 Analyze the document thoroughly and return ONLY valid JSON with this exact shape:
@@ -91,7 +88,15 @@ async function fetchPageText(url: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    // Dynamically import auth — may fail on Vercel if better-sqlite3 isn't available
+    let session: any = null;
+    try {
+      const { auth } = await import("@/auth");
+      session = await auth();
+    } catch (authError) {
+      console.warn("Auth unavailable (likely no DB on serverless):", authError);
+    }
+
     const body = await request.json();
     const { input } = body;
 
@@ -207,6 +212,8 @@ export async function POST(request: NextRequest) {
     // Save scan to database if user is authenticated
     if (session?.user?.id) {
       try {
+        const { db } = await import("@/lib/db");
+        const { scans } = await import("@/lib/db/schema");
         await db.insert(scans).values({
           userId: session.user.id,
           input: input.trim(),

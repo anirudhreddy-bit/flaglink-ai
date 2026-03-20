@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
+    const { auth } = await import("@/auth");
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -18,6 +14,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { oldPassword, newPassword, action } = body;
+
+    const { db } = await import("@/lib/db");
+    const { users } = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const bcrypt = (await import("bcryptjs")).default;
 
     if (action === "verify-old-password") {
       if (!oldPassword) {
@@ -82,8 +83,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Password reset error:", error);
     return NextResponse.json(
-      { error: "An error occurred while resetting password" },
-      { status: 500 }
+      { error: "Database is not available in this environment." },
+      { status: 503 }
     );
   }
 }

@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +37,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Dynamic imports for Vercel compatibility
+    const { db } = await import("@/lib/db");
+    const { users } = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const bcrypt = (await import("bcryptjs")).default;
 
     // Check if user already exists
     const existingUser = await db.query.users.findFirst({

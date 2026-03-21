@@ -1,61 +1,72 @@
 "use client";
 
+const BRANDS = [
+  "Spotify",
+  "Netflix",
+  "Adobe",
+  "Dropbox",
+  "Slack",
+  "GitHub",
+  "Figma",
+  "OpenAI",
+];
+
 export default function LogosBar() {
-  const brands = [
-    "Spotify",
-    "Netflix",
-    "Adobe",
-    "Dropbox",
-    "Slack",
-    "GitHub",
-    "Figma",
-    "OpenAI",
-  ];
-
   return (
-    <>
-      {/* Label */}
-      <div
-        style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: "10px",
-          color: "var(--soft)",
-          letterSpacing: "2px",
-          textTransform: "uppercase",
-          textAlign: "center",
-          marginBottom: "28px",
-        }}
-      >
-        Trusted by people signing up for
-      </div>
+    <section
+      className="w-full bg-[#ffffff] border-t border-[#e2e8f0]"
+      style={{ padding: "28px 40px" }}
+    >
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10,
+            color: "#cbd5e1",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            textAlign: "center",
+            marginBottom: 16,
+          }}
+        >
+          TRUSTED BY PEOPLE SIGNING UP FOR
+        </div>
 
-      {/* Pills row */}
-      <div
-        style={{
-          display: "flex",
-          gap: "48px",
-          justifyContent: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        {brands.map((brand) => (
-          <div
-            key={brand}
-            style={{
-              background: "white",
-              border: "1px solid var(--border)",
-              borderRadius: "6px",
-              padding: "6px 16px",
-              fontFamily: "'Syne', sans-serif",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "var(--ink3)",
-            }}
-          >
-            {brand}
-          </div>
-        ))}
+        <div
+          style={{
+            display: "flex",
+            gap: 32,
+            justifyContent: "center",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {BRANDS.map((brand) => (
+            <a
+              key={brand}
+              href="#"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                color: "#cbd5e1",
+                letterSpacing: "0.3px",
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#94a3b8";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#cbd5e1";
+              }}
+            >
+              {brand}
+            </a>
+          ))}
+        </div>
       </div>
-    </>
+    </section>
   );
 }
+

@@ -1,154 +1,161 @@
+
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSession } from "next-auth/react";
+
+function getInitials(value: string | undefined | null) {
+  const cleaned = (value || "").trim();
+  if (!cleaned) return "??";
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const second = parts.length > 1 ? parts[1]?.[0] : cleaned[1] ?? "";
+  return `${first}${second}`.toUpperCase() || "??";
+}
 
 export default function LandingNavbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
+  const userName =
+    (session?.user as { name?: string | null } | undefined)?.name ??
+    session?.user?.email ??
+    "";
+  const initials = getInitials(userName);
 
-  const navLinks = [
-    { label: "Features", href: "#features" },
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Blog", href: "#blog" },
-  ];
+  const showName = (() => {
+    const trimmed = userName.trim();
+    if (!trimmed) return "Account";
+    const firstToken = trimmed.split(/\s+/)[0];
+    return firstToken;
+  })();
 
   return (
     <nav
-      className="w-full sticky top-0 z-50 h-[60px] backdrop-blur-md flex justify-center"
-      style={{
-        background: "rgba(255, 255, 255, 0.92)",
-        borderBottom: "1px solid var(--border)",
-        animation: "slideDown 0.5s ease forwards",
-      }}
+      className="w-full sticky top-0 z-50 bg-[#ffffff] border-b border-[#e2e8f0] backdrop-blur-[12px]"
+      style={{ height: 56 }}
     >
-      <div className="w-full max-w-[1200px] px-6 md:px-10 h-full flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 no-underline">
+      <div className="max-w-[1100px] mx-auto px-10 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-[8px]">
           <div
-            className="flex items-center justify-center"
             style={{
-              width: "26px",
-              height: "26px",
-              background: "var(--run)",
-              borderRadius: "5px",
+              width: 28,
+              height: 28,
+              background: "#ef4444",
+              borderRadius: 5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {/* Play triangle SVG */}
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
-              <polygon points="0,0 12,6 0,12" />
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="8,5 19,12 8,19" fill="#ffffff" />
             </svg>
           </div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
-            <span style={{ color: "var(--ink)" }}>FlagLink</span>
-            <span style={{ color: "var(--accent)" }}>AI</span>
+
+          <div
+            style={{
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 800,
+              fontSize: 17,
+              letterSpacing: "-0.5px",
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ color: "#0f172a" }}>FlagLink</span>
+            <span style={{ color: "#6366f1" }}>AI</span>
           </div>
         </Link>
 
-        {/* Desktop Nav Links - hidden on mobile */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
+        <div className="flex items-center gap-[12px]">
+          {!session?.user ? (
+            <>
+              <Link
+                href="/auth/signin"
+                style={{
+                  background: "transparent",
+                  color: "#475569",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: 100,
+                  padding: "7px 18px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  textDecoration: "none",
+                  transition: "transform 0.15s",
+                }}
+                aria-label="Sign In"
+              >
+                Sign In
+              </Link>
+
+              <Link
+                href="/auth/signup"
+                style={{
+                  background: "#6366f1",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 100,
+                  padding: "8px 22px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: "none",
+                  transition: "transform 0.15s, background-color 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#4f46e5";
+                  e.currentTarget.style.transform = "scale(1.02)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#6366f1";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+              >
+                Start Free Today
+              </Link>
+            </>
+          ) : (
             <Link
-              key={link.label}
-              href={link.href}
-              className="no-underline"
+              href="/account"
               style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--muted)",
-                transition: "color 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                textDecoration: "none",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--ink)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--muted)";
-              }}
+              aria-label="Go to your account"
             >
-              {link.label}
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: "50%",
+                  background: "#eef2ff",
+                  color: "#6366f1",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "'Syne', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 11,
+                }}
+              >
+                {initials}
+              </div>
+              <div
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  color: "#475569",
+                }}
+              >
+                {showName}
+              </div>
             </Link>
-          ))}
-        </div>
-
-        {/* Right Buttons */}
-        <div className="flex items-center gap-3">
-          {/* Sign In */}
-          <Link href="/auth/signin" className="btn-ghost hidden sm:inline-block">
-            Sign In
-          </Link>
-
-          {/* Book Demo */}
-          <Link
-            href="mailto:hello@flaglink.ai"
-            className="btn-ghost hidden sm:inline-block"
-          >
-            Book Demo
-          </Link>
-
-          {/* Start Free Today */}
-          <Link href="/auth/signup" className="btn-primary">
-            Start Free Today
-          </Link>
-
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden flex flex-col gap-1.5 p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <div
-              style={{
-                width: "20px",
-                height: "2px",
-                background: "var(--ink)",
-              }}
-            />
-            <div
-              style={{
-                width: "20px",
-                height: "2px",
-                background: "var(--ink)",
-              }}
-            />
-            <div
-              style={{
-                width: "20px",
-                height: "2px",
-                background: "var(--ink)",
-              }}
-            />
-          </button>
+          )}
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div
-          className="md:hidden absolute top-[60px] left-0 right-0 bg-white border-b"
-          style={{
-            borderBottomColor: "var(--border)",
-            padding: "16px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-          }}
-        >
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="no-underline text-sm"
-              style={{
-                color: "var(--muted)",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      )}
     </nav>
   );
 }
+

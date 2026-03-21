@@ -1,45 +1,66 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+function ArrowIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3.5 8H12.2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.8 3.9L12.3 8L8.8 12.1"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function Hero() {
-  const [dotPulse, setDotPulse] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDotPulse((p) => (p + 1) % 3);
-    }, 300);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center w-full">
-        {/* LEFT SIDE */}
+    <section className="w-full bg-[#ffffff]">
+      <div
+        className="max-w-[1100px] mx-auto px-10 pt-20 pb-16 grid grid-cols-2 gap-16 items-center"
+        style={{ gridTemplateColumns: "1.1fr 0.9fr", gap: 60, paddingBottom: 60 }}
+      >
+        {/* LEFT COLUMN */}
         <div>
-          {/* Badge */}
+          {/* Eyebrow badge */}
           <div
-            className="inline-flex gap-1.5 items-center mb-8"
             style={{
-              background: "var(--run-bg)",
-              border: "1px solid var(--run-border)",
-              borderRadius: "100px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 100,
               padding: "5px 14px",
+              marginBottom: 24,
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "10px",
-              color: "var(--run)",
+              fontSize: 10,
+              color: "#ef4444",
               letterSpacing: "1.2px",
-              animation: "fadeUp 0.6s ease-out 0.1s both",
+              textTransform: "uppercase",
             }}
           >
             <span
-              className="animate-pulse"
               style={{
                 display: "inline-block",
-                width: "6px",
-                height: "6px",
-                background: "var(--run)",
-                borderRadius: "50%",
+                width: 6,
+                height: 6,
+                borderRadius: 999,
+                background: "#ef4444",
+                animation: "pulse 1.5s infinite",
               }}
             />
             AI-POWERED LEGAL SCANNER
@@ -49,374 +70,387 @@ export default function Hero() {
           <h1
             style={{
               fontFamily: "'Syne', sans-serif",
-              fontSize: "clamp(36px, 4.5vw, 56px)",
               fontWeight: 900,
+              fontSize: "clamp(36px, 4vw, 52px)",
               letterSpacing: "-2px",
-              lineHeight: 1.08,
-              color: "var(--ink)",
-              marginBottom: "24px",
-              animation: "fadeUp 0.6s ease-out 0.2s both",
-              wordWrap: "break-word",
-              overflow: "hidden",
-              fontStretch: "normal",
+              lineHeight: 1.1,
+              marginBottom: 20,
+              animation: "fadeUp 0.6s 0.2s ease both",
               transform: "none",
+              direction: "ltr",
+              fontStretch: "normal",
               textAlign: "left",
             }}
           >
-            Stop{" "}
-            <span
-              style={{
-                textDecoration: "line-through",
-                textDecorationColor: "var(--run)",
-                textDecorationThickness: "3px",
-              }}
-            >
-              blindly clicking
+            <span style={{ display: "block", color: "#0f172a" }}>
+              Stop blindly clicking
             </span>
-            {" "}
-            <span
-              style={{
-                textDecoration: "line-through",
-                textDecorationColor: "var(--run)",
-                textDecorationThickness: "3px",
-              }}
-            >
-              "I Agree."
+            <span style={{ display: "block", color: "#6366f1" }}>
+              {"\"I Agree.\""}
             </span>
-            <br />
-            <span style={{ 
-              color: "var(--accent)",
-              fontSize: "clamp(36px, 4.5vw, 56px)",
-              fontWeight: 900,
-              letterSpacing: "-2px",
-              lineHeight: 1.08,
-              display: "block",
-            }}>Know what you sign.</span>
           </h1>
 
-          {/* Subtext */}
+          {/* Subheadline */}
           <p
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: "16px",
               fontWeight: 400,
-              color: "var(--muted)",
+              fontSize: 16,
+              color: "#475569",
               lineHeight: 1.75,
-              maxWidth: "440px",
-              marginBottom: "32px",
-              animation: "fadeUp 0.6s ease-out 0.3s both",
+              maxWidth: 480,
+              marginBottom: 32,
+              animation: "fadeUp 0.6s 0.35s ease both",
             }}
           >
-            Paste any Terms & Conditions URL. FlagLink AI reads every clause,
-            flags every trap, and tells you — in plain English — whether to
-            sign or run.
+            Paste any Terms &amp; Conditions URL or text. FlagLink AI reads every
+            clause, flags hidden traps, and tells you — in plain English — whether
+            to sign or run.
           </p>
 
-          {/* Buttons Row */}
+          {/* CTA buttons */}
           <div
-            className="flex flex-col sm:flex-row gap-3 mb-8"
-            style={{ animation: "fadeUp 0.6s ease-out 0.4s both" }}
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: 20,
+              animation: "fadeUp 0.5s 0.5s ease both",
+            }}
           >
-            <Link
-              href="/?scan=true"
-              className="btn-primary inline-flex items-center justify-center gap-2"
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("scan");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+                else window.location.href = "/?scan=true";
+              }}
+              style={{
+                background: "#6366f1",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 100,
+                padding: "14px 32px",
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 700,
+                fontSize: 15,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+                transition: "transform 0.2s, background-color 0.2s, box-shadow 0.2s",
+              }}
+              className="hover:bg-[#4f46e5] hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(99,102,241,0.25)]"
+              aria-label="Start scanning"
             >
-              Scan for Red Flags
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8.5 3v10M13 8.5H3" stroke="currentColor" fill="none" strokeWidth="2" />
-              </svg>
-            </Link>
+              Start Scanning
+              <span style={{ color: "#ffffff" }}>
+                <ArrowIcon size={14} />
+              </span>
+            </button>
 
-            <Link href="#features" className="btn-ghost text-center">
-              See a sample report
-            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("how-it-works");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              style={{
+                background: "transparent",
+                color: "#475569",
+                border: "1.5px solid #cbd5e1",
+                borderRadius: 100,
+                padding: "13px 26px",
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 500,
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "border-color 0.2s, color 0.2s",
+              }}
+              className="hover:border-[#94a3b8] hover:text-[#0f172a]"
+              aria-label="How it works"
+            >
+              How it works
+            </button>
           </div>
 
-          {/* Trust line */}
+          {/* Trust / microcopy line */}
           <div
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: "12px",
               fontWeight: 300,
-              color: "var(--soft)",
-              animation: "fadeIn 0.6s ease-out 0.6s both",
+              fontSize: 12,
+              color: "#94a3b8",
+              letterSpacing: "0.3px",
+              animation: "fadeIn 0.5s 0.7s ease both",
             }}
           >
-            Free forever plan · No credit card required · Not legal advice
+            Free forever
+            <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
+            No credit card
+            <span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>
+            Not legal advice
           </div>
         </div>
 
-        {/* RIGHT SIDE — Mock Browser UI */}
+        {/* RIGHT COLUMN — mock browser */}
         <div
-          className="hidden md:block"
           style={{
-            animation: "fadeUp 0.6s ease-out 0.3s both",
-            maxWidth: "100%",
-            width: "100%",
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            boxShadow:
+              "0 20px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)",
+            overflow: "hidden",
+            animation: "fadeUp 0.8s 0.3s ease both",
           }}
         >
+          {/* Browser bar */}
           <div
             style={{
-              background: "white",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.06)",
-              overflow: "hidden",
-              maxHeight: "500px",
+              background: "#f1f5f9",
+              borderBottom: "1px solid #e2e8f0",
+              padding: "10px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            {/* Browser bar */}
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#ff5f57",
+              }}
+            />
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#febc2e",
+              }}
+            />
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#28c840",
+              }}
+            />
+
             <div
               style={{
-                background: "#f1f5f9",
-                borderBottom: "1px solid var(--border)",
-                padding: "10px 16px",
+                flex: 1,
+                margin: "0 8px",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 6,
+                padding: "4px 12px",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                color: "#94a3b8",
+              }}
+            >
+              flaglink.ai/scan
+            </div>
+          </div>
+
+          {/* Mock body */}
+          <div>
+            {/* Scan input row */}
+            <div
+              style={{
+                padding: "10px 14px",
                 display: "flex",
+                gap: 8,
                 alignItems: "center",
-                gap: "8px",
+                background: "#f8fafc",
+                border: "1.5px solid #e2e8f0",
+                borderRadius: 8,
+                margin: "16px 16px 12px",
               }}
             >
               <div
                 style={{
-                  width: "10px",
-                  height: "10px",
-                  background: "#ff5f57",
-                  borderRadius: "50%",
+                  flex: 1,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 11,
+                  color: "#94a3b8",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
-              />
+              >
+                https://spotify.com/legal/end-user-agreement/
+              </div>
+
               <div
                 style={{
-                  width: "10px",
-                  height: "10px",
-                  background: "#febc2e",
-                  borderRadius: "50%",
+                  background: "#6366f1",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "6px 14px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
                 }}
-              />
-              <div
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  background: "#28c840",
-                  borderRadius: "50%",
-                }}
-              />
-              <div style={{ flex: 1, marginLeft: "12px" }}>
-                <div
-                  style={{
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                    padding: "4px 10px",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "11px",
-                    color: "var(--muted)",
-                  }}
-                >
-                  flaglink.ai/scan
-                </div>
+              >
+                Analyzing...
               </div>
             </div>
 
-            {/* Content area */}
-            <div style={{ padding: "20px" }}>
-              {/* URL input row */}
-              <div
-                style={{
-                  background: "var(--bg2)",
-                  border: "1.5px solid var(--border)",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                }}
-              >
-                <input
-                  type="text"
-                  value="https://spotify.com/legal/end-user-agreement/"
-                  readOnly
-                  style={{
-                    flex: 1,
-                    border: "none",
-                    background: "transparent",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: "11px",
-                    color: "var(--muted)",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  style={{
-                    background: "var(--accent)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    cursor: "default",
-                  }}
-                >
-                  Analyzing...
-                </button>
-              </div>
-
-              {/* Progress bar */}
-              <div
-                style={{
-                  height: "3px",
-                  background: "var(--bg3)",
-                  borderRadius: "2px",
-                  overflow: "hidden",
-                  marginBottom: "6px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "73%",
-                    height: "100%",
-                    background: "var(--accent)",
-                    backgroundImage: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
-                    backgroundSize: "200% 100%",
-                    animation: "shimmer 1.2s linear infinite",
-                  }}
-                />
-              </div>
-
-              {/* Status row */}
+            {/* Progress bar */}
+            <div style={{ margin: "0 16px 12px" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "10px",
-                  color: "var(--muted)",
-                  marginBottom: "14px",
+                  fontSize: 10,
+                  color: "#94a3b8",
+                  marginBottom: 6,
                 }}
               >
                 <span>Detecting red flags...</span>
-                <span>73%</span>
+                <span>71%</span>
               </div>
 
-              {/* Verdict card */}
               <div
                 style={{
-                  background: "var(--ink)",
-                  borderRadius: "10px",
-                  padding: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "12px",
+                  height: 3,
+                  background: "#f1f5f9",
+                  borderRadius: 2,
+                  overflow: "hidden",
                 }}
               >
-                <div>
-                  <div
-                    style={{
-                      fontFamily: "'Syne', sans-serif",
-                      fontSize: "36px",
-                      fontWeight: 900,
-                      color: "var(--run)",
-                      letterSpacing: "-1.5px",
-                      lineHeight: 1,
-                      marginBottom: "2px",
-                    }}
-                  >
-                    RUN.
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: "22px",
-                      fontWeight: 700,
-                      color: "var(--run)",
-                      lineHeight: 1,
-                    }}
-                  >
-                    14<span style={{ fontSize: "12px", color: "#3a4a6a" }}>/100</span>
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: "9px",
-                      color: "#3a4a6a",
-                      letterSpacing: "1.5px",
-                      marginTop: "2px",
-                    }}
-                  >
-                    RISK SCORE
-                  </div>
-                </div>
-              </div>
-
-              {/* 3 flags */}
-              {[
-                {
-                  label: "Forced arbitration",
-                  detail: "waive all court rights",
-                  severity: "CRITICAL",
-                  color: "var(--run)",
-                },
-                {
-                  label: "Data sold to advertising partners",
-                  detail: "3rd party sharing",
-                  severity: "HIGH",
-                  color: "var(--warn)",
-                },
-                {
-                  label: "Auto-renews annually, no reminder sent",
-                  detail: "subscription trap",
-                  severity: "HIGH",
-                  color: "var(--warn)",
-                },
-              ].map((flag, i) => (
                 <div
-                  key={i}
                   style={{
-                    display: "flex",
-                    gap: "8px",
-                    alignItems: "center",
-                    background: "white",
-                    border: "1px solid var(--border)",
-                    borderLeft: `3px solid ${flag.color}`,
-                    borderRadius: "6px",
-                    padding: "8px 12px",
-                    fontSize: "11px",
-                    color: "var(--ink2)",
-                    marginBottom: i < 2 ? "6px" : 0,
+                    width: "71%",
+                    height: "100%",
+                    background: "#6366f1",
+                    borderRadius: 2,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
                   <div
                     style={{
-                      width: "5px",
-                      height: "5px",
-                      background: flag.color,
-                      borderRadius: "50%",
-                      flexShrink: 0,
+                      position: "absolute",
+                      top: 0,
+                      left: "-100%",
+                      width: "100%",
+                      height: "100%",
+                      background: "rgba(255,255,255,0.4)",
+                      animation: "shimmer 1.2s infinite",
                     }}
                   />
-                  <span style={{ flex: 1 }}>
-                    {flag.label}{" "}
-                    <span style={{ color: "var(--soft)", fontSize: "9px" }}>
-                      — {flag.detail}
+                </div>
+              </div>
+            </div>
+
+            {/* Flag results */}
+            <div
+              style={{
+                padding: "0 12px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
+              {[
+                {
+                  severity: "CRITICAL",
+                  color: "#ef4444",
+                  pillBg: "#fef2f2",
+                  pillBorder: "#fecaca",
+                  pillColor: "#991b1b",
+                  label: "Forced arbitration",
+                  sub: "Waives court rights",
+                },
+                {
+                  severity: "HIGH",
+                  color: "#f97316",
+                  pillBg: "#fff7ed",
+                  pillBorder: "#fed7aa",
+                  pillColor: "#9a3412",
+                  label: "Data sold to advertisers",
+                  sub: "Third-party sharing",
+                },
+                {
+                  severity: "HIGH",
+                  color: "#f97316",
+                  pillBg: "#fff7ed",
+                  pillBorder: "#fed7aa",
+                  pillColor: "#9a3412",
+                  label: "Auto-renews annually",
+                  sub: "No cancellation reminder",
+                },
+              ].map((flag, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderLeft: `3px solid ${flag.color}`,
+                    borderRadius: 6,
+                    padding: "8px 12px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      background: flag.color,
+                      display: "inline-block",
+                    }}
+                  />
+
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontWeight: 500,
+                        fontSize: 11,
+                        color: "#0f172a",
+                      }}
+                    >
+                      {flag.label}
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontWeight: 400,
+                        fontSize: 10,
+                        color: "#94a3b8",
+                        display: "block",
+                        marginTop: 1,
+                      }}
+                    >
+                      {flag.sub}
                     </span>
-                  </span>
+                  </div>
+
                   <div
                     style={{
+                      marginLeft: "auto",
                       fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: "8px",
+                      fontSize: 8,
                       letterSpacing: "1px",
                       padding: "2px 6px",
-                      borderRadius: "3px",
-                      background:
-                        flag.color === "var(--run)"
-                          ? "rgba(239,68,68,0.1)"
-                          : "rgba(249,115,22,0.1)",
-                      color: flag.color,
+                      borderRadius: 3,
+                      background: flag.pillBg,
+                      color: flag.pillColor,
+                      border: `1px solid ${flag.pillBorder}`,
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -428,5 +462,7 @@ export default function Hero() {
           </div>
         </div>
       </div>
-    );
-  }
+    </section>
+  );
+}
+

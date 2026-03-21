@@ -3,128 +3,96 @@
 export default function HowItWorks() {
   const steps = [
     {
-      number: "01",
-      title: "Drop in any URL",
-      body: "Paste a T&C link or raw text into the scanner. Works with any publicly accessible Terms & Conditions page.",
+      title: "Paste a URL or text",
+      body: "Drop any Terms & Conditions link or copy-paste the full text into the scanner.",
     },
     {
-      number: "02",
-      title: "Claude reads it all",
-      body: "Our AI reads every clause in under 2 seconds, checking for 10+ red flag types including auto-renewals, arbitration, and data sharing.",
+      title: "AI scans every clause",
+      body: "Claude AI reads the entire document, identifying red flags, traps, and hidden terms.",
     },
     {
-      number: "03",
       title: "Get your verdict",
-      body: "Receive a risk score, plain-English flag explanations, and 'what to do' advice. Share the report with anyone who needs to see it.",
+      body: "Receive a risk score, flagged clauses, and plain-English advice on what to do next.",
     },
   ];
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "56px" }}>
-          <h2
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: "clamp(26px, 3.5vw, 40px)",
-              fontWeight: 900,
-              letterSpacing: "-0.015em",
-              color: "var(--ink)",
-              marginBottom: "12px",
-            }}
-          >
-            From concept to verdict, surprisingly fast.
-          </h2>
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: "14px",
-              color: "var(--muted)",
-            }}
-          >
-            Three steps. One clear answer. No legal degree needed.
-          </p>
-        </div>
+    <section id="how-it-works" className="w-full bg-[#ffffff]">
+      <div className="max-w-[900px] mx-auto px-10 py-20 text-center">
+        <h2
+          style={{
+            fontFamily: "'Syne', sans-serif",
+            fontWeight: 800,
+            fontSize: "clamp(26px,3.5vw,40px)",
+            color: "#0f172a",
+            letterSpacing: "-1.5px",
+            marginBottom: 8,
+          }}
+        >
+          How it works
+        </h2>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 400,
+            fontSize: 14,
+            color: "#94a3b8",
+            marginBottom: 48,
+            lineHeight: 1.7,
+          }}
+        >
+          Three simple steps to know what you&apos;re agreeing to.
+        </p>
 
-        {/* 3-column grid */}
-        <div className="grid md:grid-cols-3 gap-8">
-          {steps.map((step, i) => (
-            <div
-              key={i}
-              style={{
-                background: "white",
-                border: "1px solid var(--border)",
-                borderRadius: "14px",
-                padding: "28px",
-                position: "relative",
-                overflow: "hidden",
-                animationName: "fadeUp",
-                animationDuration: "0.6s",
-                animationTimingFunction: "ease",
-                animationDelay: `${i * 100}ms`,
-                animationFillMode: "both",
-              }}
-            >
-              {/* Step label */}
+        <div className="grid grid-cols-3 gap-[40px] max-w-[800px] mx-auto">
+          {steps.map((step, idx) => (
+            <div key={idx} className="text-center">
               <div
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "11px",
-                  color: "var(--accent)",
-                  letterSpacing: "2px",
-                  textTransform: "uppercase",
-                  marginBottom: "12px",
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  background: "#eef2ff",
+                  border: "2px solid #c7d2fe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                  fontFamily: "'Syne', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 18,
+                  color: "#6366f1",
                 }}
               >
-                {step.number} — PASTE
+                {idx + 1}
               </div>
-
-              {/* Title */}
               <h3
                 style={{
                   fontFamily: "'Syne', sans-serif",
-                  fontSize: "17px",
                   fontWeight: 700,
-                  color: "var(--ink)",
-                  marginBottom: "8px",
-                  lineHeight: 1.3,
+                  fontSize: 16,
+                  color: "#0f172a",
+                  marginBottom: 8,
                 }}
               >
                 {step.title}
               </h3>
-
-              {/* Body */}
               <p
                 style={{
                   fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "13px",
-                  color: "var(--muted)",
+                  fontWeight: 400,
+                  fontSize: 13,
+                  color: "#475569",
                   lineHeight: 1.7,
-                  margin: 0,
                 }}
               >
                 {step.body}
               </p>
-
-              {/* Decorative number */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "-16px",
-                  right: "8px",
-                  fontFamily: "'Syne', sans-serif",
-                  fontSize: "80px",
-                  fontWeight: 900,
-                  color: "rgba(99, 102, 241, 0.04)",
-                  pointerEvents: "none",
-                  lineHeight: 1,
-                }}
-              >
-                {step.number}
-              </div>
             </div>
           ))}
         </div>
       </div>
-    );
-  }
+    </section>
+  );
+}
+

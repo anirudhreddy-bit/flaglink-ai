@@ -1,10 +1,10 @@
 import Link from "next/link";
-import HowItWorks from "@/components/landing/HowItWorks";
+import ScanSection from "@/components/landing/ScanSection";
 
-export default function HowItWorksPage() {
+export default function ScanPage() {
   return (
     <main className="min-h-screen bg-[#ffffff] flex flex-col items-center justify-center">
-      <div className="w-full max-w-[1100px] px-6 pt-8 text-center">
+      <div className="w-full max-w-[1100px] px-6 py-8 text-center">
         <Link
           href="/"
           style={{
@@ -24,7 +24,7 @@ export default function HowItWorksPage() {
           ← Back
         </Link>
       </div>
-      <HowItWorks />
+      <ScanSection />
     </main>
   );
 }

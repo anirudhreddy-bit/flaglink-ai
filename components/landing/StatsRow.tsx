@@ -22,11 +22,7 @@ export default function StatsRow() {
       {
         label: "Scan speed",
         target: 2,
-        format: (v) => {
-          const rounded = Math.round(v);
-          if (rounded >= 2) return "< 2s";
-          return `< ${rounded}s`;
-        },
+        format: (v) => (Math.round(v) >= 2 ? "< 2s" : `< ${Math.round(v)}s`),
       },
       {
         label: "Red flag types",
@@ -41,7 +37,7 @@ export default function StatsRow() {
       {
         label: "No card needed",
         target: 1,
-        format: (v) => (v >= 0.999 ? "Free" : "0"),
+        format: (v) => (v >= 0.999 ? "Free" : "—"),
       },
     ],
     []
@@ -50,7 +46,6 @@ export default function StatsRow() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
@@ -59,61 +54,73 @@ export default function StatsRow() {
       },
       { threshold: 0.15 }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
     if (!visible) return;
-
-    const durationMs = 1500;
+    const durationMs = 1400;
     const start = performance.now();
-
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
       const eased = easeOutCubic(t);
       setValues(stats.map((s) => s.target * eased));
-
       if (t < 1) requestAnimationFrame(tick);
     };
-
     requestAnimationFrame(tick);
   }, [visible, stats]);
 
   return (
     <div
       ref={ref}
-      className="w-full bg-[#f8fafc] border-y border-[#e2e8f0]"
+      style={{
+        background: "#ffffff",
+        borderTop: "0.5px solid #e2e1db",
+        borderBottom: "0.5px solid #e2e1db",
+        width: "100%",
+      }}
     >
-      <div className="max-w-[900px] mx-auto px-10 py-12 grid grid-cols-4">
+      <div
+        style={{
+          maxWidth: 1440,
+          margin: "0 auto",
+          width: "100%",
+          padding: "0 6%",
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+        }}
+      >
         {stats.map((stat, i) => (
           <div
             key={stat.label}
-            className={`text-center px-[20px] ${
-              i < stats.length - 1 ? "border-r border-[#e2e8f0]" : ""
-            }`}
+            style={{
+              textAlign: "center",
+              padding: "32px 20px",
+              borderLeft: i > 0 ? "0.5px solid #e2e1db" : "none",
+            }}
           >
             <div
               style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 900,
-                fontSize: 36,
-                color: "#6366f1",
-                letterSpacing: "-1.5px",
+                fontFamily: "'Bricolage Grotesque', sans-serif",
+                fontWeight: 700,
+                fontSize: "clamp(30px, 3vw, 44px)",
+                color: "#4f46e5",
+                letterSpacing: "-0.02em",
+                lineHeight: 1,
+                marginBottom: 7,
               }}
             >
               {stat.format(values[i] ?? 0)}
             </div>
             <div
               style={{
-                marginTop: 4,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontWeight: 400,
-                color: "#94a3b8",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
                 fontSize: 11,
+                color: "#888",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
               }}
             >
               {stat.label}
@@ -124,4 +131,3 @@ export default function StatsRow() {
     </div>
   );
 }
-

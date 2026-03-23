@@ -1,161 +1,140 @@
-
 "use client";
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
-function getInitials(value: string | undefined | null) {
-  const cleaned = (value || "").trim();
-  if (!cleaned) return "??";
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "";
-  const second = parts.length > 1 ? parts[1]?.[0] : cleaned[1] ?? "";
-  return `${first}${second}`.toUpperCase() || "??";
-}
-
 export default function LandingNavbar() {
   const { data: session } = useSession();
-  const userName =
-    (session?.user as { name?: string | null } | undefined)?.name ??
-    session?.user?.email ??
-    "";
-  const initials = getInitials(userName);
-
-  const showName = (() => {
-    const trimmed = userName.trim();
-    if (!trimmed) return "Account";
-    const firstToken = trimmed.split(/\s+/)[0];
-    return firstToken;
-  })();
 
   return (
     <nav
-      className="w-full sticky top-0 z-50 bg-[#ffffff] border-b border-[#e2e8f0] backdrop-blur-[12px]"
-      style={{ height: 56 }}
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        background: "#ffffff",
+        borderBottom: "0.5px solid #e2e1db",
+        height: 58,
+        width: "100%",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "0 6%",
+      }}
     >
-      <div className="max-w-[1100px] mx-auto px-10 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-[8px]">
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              background: "#ef4444",
-              borderRadius: 5,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+      {/* Logo */}
+      <Link
+        href="/"
+        style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            background: "#4f46e5",
+            borderRadius: 6,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+            <polygon points="8,5 19,12 8,19" fill="#ffffff" />
+          </svg>
+        </div>
+        <span
+          style={{
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontWeight: 700,
+            fontSize: 16,
+            letterSpacing: "-0.3px",
+            lineHeight: 1,
+          }}
+        >
+          <span style={{ color: "#0f172a" }}>FlagLink</span>
+          <span style={{ color: "#4f46e5" }}>AI</span>
+        </span>
+      </Link>
+
+      {/* Right side */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {session?.user ? (
+          <Link
+            href="/account"
+            style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <polygon points="8,5 19,12 8,19" fill="#ffffff" />
-            </svg>
-          </div>
-
-          <div
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 800,
-              fontSize: 17,
-              letterSpacing: "-0.5px",
-              lineHeight: 1,
-            }}
-          >
-            <span style={{ color: "#0f172a" }}>FlagLink</span>
-            <span style={{ color: "#6366f1" }}>AI</span>
-          </div>
-        </Link>
-
-        <div className="flex items-center gap-[12px]">
-          {!session?.user ? (
-            <>
-              <Link
-                href="/auth/signin"
-                style={{
-                  background: "transparent",
-                  color: "#475569",
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: 100,
-                  padding: "7px 18px",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 500,
-                  fontSize: 13,
-                  textDecoration: "none",
-                  transition: "transform 0.15s",
-                }}
-                aria-label="Sign In"
-              >
-                Sign In
-              </Link>
-
-              <Link
-                href="/auth/signup"
-                style={{
-                  background: "#6366f1",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 100,
-                  padding: "8px 22px",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  textDecoration: "none",
-                  transition: "transform 0.15s, background-color 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#4f46e5";
-                  e.currentTarget.style.transform = "scale(1.02)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#6366f1";
-                  e.currentTarget.style.transform = "scale(1)";
-                }}
-              >
-                Start Free Today
-              </Link>
-            </>
-          ) : (
-            <Link
-              href="/account"
+            <div
               style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "#eef2ff",
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                textDecoration: "none",
+                justifyContent: "center",
+                fontFamily: "'Bricolage Grotesque', sans-serif",
+                fontWeight: 700,
+                fontSize: 11,
+                color: "#4f46e5",
+                flexShrink: 0,
               }}
-              aria-label="Go to your account"
             >
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  background: "#eef2ff",
-                  color: "#6366f1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Syne', sans-serif",
-                  fontWeight: 700,
-                  fontSize: 11,
-                }}
-              >
-                {initials}
-              </div>
-              <div
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 500,
-                  fontSize: 13,
-                  color: "#475569",
-                }}
-              >
-                {showName}
-              </div>
+              {(session.user.name || session.user.email || "FL")
+                .split(" ")
+                .map((w: string) => w[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2)}
+            </div>
+            <span
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13,
+                color: "#444",
+                fontWeight: 500,
+              }}
+            >
+              {session.user.name?.split(" ")[0] || session.user.email}
+            </span>
+          </Link>
+        ) : (
+          <>
+            <Link
+              href="/auth/signin"
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#555",
+                textDecoration: "none",
+                padding: "7px 16px",
+                border: "0.5px solid #e2e1db",
+                borderRadius: 50,
+                transition: "border-color 0.15s",
+              }}
+            >
+              Sign In
             </Link>
-          )}
-        </div>
+            <Link
+              href="/auth/signup"
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#ffffff",
+                textDecoration: "none",
+                padding: "7px 18px",
+                background: "#4f46e5",
+                borderRadius: 50,
+                transition: "background 0.15s",
+              }}
+            >
+              Start Free
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );
 }
-

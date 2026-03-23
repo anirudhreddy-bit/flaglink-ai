@@ -1,72 +1,83 @@
-"use client";
-
 const BRANDS = [
-  "Spotify",
-  "Netflix",
-  "Adobe",
-  "Dropbox",
-  "Slack",
-  "GitHub",
-  "Figma",
-  "OpenAI",
+  { name: "Spotify", logoPath: "/logos/spotify.svg" },
+  { name: "Netflix", logoPath: "/logos/netflix.svg" },
+  { name: "Adobe", logoPath: "/logos/adobe.svg" },
+  { name: "Dropbox", logoPath: "/logos/dropbox.svg" },
+  { name: "Slack", logoPath: "/logos/slack.svg" },
+  { name: "GitHub", logoPath: "/logos/github.svg" },
+  { name: "Figma", logoPath: "/logos/figma.svg" },
+  { name: "OpenAI", logoPath: "/logos/openai.svg" },
 ];
 
 export default function LogosBar() {
   return (
     <section
-      className="w-full bg-[#ffffff] border-t border-[#e2e8f0]"
-      style={{ padding: "28px 40px" }}
+      style={{
+        background: "#f5f4f0",
+        width: "100%",
+        padding: "36px 6%",
+      }}
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div
+      <div
+        style={{
+          maxWidth: 1440,
+          margin: "0 auto",
+          width: "100%",
+        }}
+      >
+        <p
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color: "#cbd5e1",
-            letterSpacing: "2px",
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 11,
+            fontWeight: 500,
+            color: "#888",
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
             textAlign: "center",
-            marginBottom: 16,
+            marginBottom: 18,
           }}
         >
-          TRUSTED BY PEOPLE SIGNING UP FOR
-        </div>
+          Trusted by people signing up for
+        </p>
 
         <div
           style={{
             display: "flex",
-            gap: 32,
+            gap: 10,
             justifyContent: "center",
             flexWrap: "wrap",
             alignItems: "center",
           }}
         >
           {BRANDS.map((brand) => (
-            <a
-              key={brand}
-              href="#"
+            <div
+              key={brand.name}
+              title={brand.name}
               style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 13,
-                color: "#cbd5e1",
-                letterSpacing: "0.3px",
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#94a3b8";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#cbd5e1";
+                background: "#ffffff",
+                border: "0.5px solid #e2e1db",
+                borderRadius: 8,
+                padding: "8px 18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "border-color 0.15s",
               }}
             >
-              {brand}
-            </a>
+              <img
+                src={brand.logoPath}
+                alt={brand.name}
+                style={{
+                  height: 18,
+                  width: "auto",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
 }
-

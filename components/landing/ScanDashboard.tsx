@@ -17,7 +17,7 @@ interface ScanRecord {
   createdAt: string;
 }
 
-function useInView(ref: React.RefObject<HTMLDivElement>) {
+function useInView(ref: React.RefObject<HTMLDivElement | null>) {
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const el = ref.current;

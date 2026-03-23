@@ -343,7 +343,7 @@ export default function ScannerPage() {
                     fontSize: 12,
                     boxShadow: "0 4px 6px -1px rgba(0,0,0,0.07)",
                   }}
-                  formatter={(value: number) => [`${value}`, "Risk Score"]}
+                  formatter={(value) => [`${value}`, "Risk Score"]}
                   cursor={{ fill: "rgba(0,0,0,0.03)" }}
                 />
                 <Bar dataKey="score" radius={[4, 4, 0, 0]} maxBarSize={30}>

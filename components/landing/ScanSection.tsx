@@ -73,15 +73,23 @@ export default function ScanSection() {
   return (
     <section
       id="scan"
-      className="w-full bg-[#f8fafc] border-t border-[#e2e8f0]"
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "80px 6%",
+        background: "#f5f4f0",
+      }}
     >
-      <div className="max-w-[680px] mx-auto px-6 py-16 text-center">
+      <div style={{ width: "100%", maxWidth: 640, textAlign: "center" }}>
         <h2
           style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 800,
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontWeight: 700,
             fontSize: 32,
-            letterSpacing: "-1px",
+            letterSpacing: "-0.02em",
             color: "#0f172a",
             marginBottom: 8,
           }}
@@ -90,10 +98,10 @@ export default function ScanSection() {
         </h2>
         <p
           style={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 400,
             fontSize: 14,
-            color: "#94a3b8",
+            color: "#888",
             marginBottom: 28,
           }}
         >
@@ -108,7 +116,7 @@ export default function ScanSection() {
               "Paste a URL (e.g. https://spotify.com/terms)\nor paste the full T&C text..."
             }
             disabled={loading}
-            className="w-full min-h-[140px] resize-y rounded-[12px] bg-[#ffffff] border-[1.5px] border-[#e2e8f0] px-4 py-4 text-[14px] leading-[1.6] text-[#0f172a] placeholder-[#94a3b8] outline-none transition-shadow focus:border-[#6366f1] focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+            className="w-full min-h-[180px] resize-y rounded-[12px] bg-[#ffffff] border-[0.5px] border-[#e2e1db] px-4 py-4 text-[14px] leading-[1.6] text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)]"
             style={{
               fontFamily: "'DM Sans', sans-serif",
               fontWeight: 400,
@@ -133,10 +141,10 @@ export default function ScanSection() {
           type="button"
           onClick={handleScan}
           disabled={loading || !input.trim()}
-          className="w-full h-[52px] rounded-[10px] bg-[#6366f1] text-[#ffffff] border-none flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 hover:bg-[#4f46e5] hover:shadow-[0_8px_24px_rgba(99,102,241,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-[52px] rounded-[50px] bg-[#4f46e5] text-[#ffffff] border-none flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 hover:bg-[#4338ca] hover:shadow-[0_8px_24px_rgba(79,70,229,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 600,
             letterSpacing: "0.2px",
             fontSize: 15,
           }}

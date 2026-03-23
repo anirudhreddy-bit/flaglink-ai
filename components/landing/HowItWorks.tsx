@@ -1,74 +1,91 @@
 "use client";
 
-export default function HowItWorks() {
-  const steps = [
-    {
-      title: "Paste a URL or text",
-      body: "Drop any Terms & Conditions link or copy-paste the full text into the scanner.",
-    },
-    {
-      title: "AI scans every clause",
-      body: "Claude AI reads the entire document, identifying red flags, traps, and hidden terms.",
-    },
-    {
-      title: "Get your verdict",
-      body: "Receive a risk score, flagged clauses, and plain-English advice on what to do next.",
-    },
-  ];
+const steps = [
+  {
+    title: "Paste a URL or text",
+    body: "Drop any Terms & Conditions link or copy-paste the full text into the scanner.",
+  },
+  {
+    title: "AI scans every clause",
+    body: "Claude AI reads the entire document, identifying red flags, traps, and hidden terms.",
+  },
+  {
+    title: "Get your verdict",
+    body: "Receive a risk score, flagged clauses, and plain-English advice on what to do next.",
+  },
+];
 
+export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="w-full bg-[#ffffff]">
-      <div className="max-w-[900px] mx-auto px-10 py-20 text-center">
+    <section
+      id="how-it-works"
+      style={{ width: "100%", padding: "0 6%" }}
+    >
+      <div
+        style={{
+          maxWidth: 900,
+          margin: "0 auto",
+          textAlign: "center",
+        }}
+      >
         <h2
           style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 800,
-            fontSize: "clamp(26px,3.5vw,40px)",
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontWeight: 700,
+            fontSize: "clamp(28px, 3.5vw, 44px)",
             color: "#0f172a",
-            letterSpacing: "-1.5px",
-            marginBottom: 8,
+            letterSpacing: "-0.02em",
+            marginBottom: 10,
           }}
         >
           How it works
         </h2>
         <p
           style={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 400,
-            fontSize: 14,
-            color: "#94a3b8",
-            marginBottom: 48,
-            lineHeight: 1.7,
+            fontSize: 15,
+            color: "#888",
+            marginBottom: 56,
+            lineHeight: 1.65,
           }}
         >
           Three simple steps to know what you&apos;re agreeing to.
         </p>
 
-        <div className="grid grid-cols-3 gap-[40px] max-w-[800px] mx-auto">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 40,
+            maxWidth: 820,
+            margin: "0 auto",
+          }}
+        >
           {steps.map((step, idx) => (
-            <div key={idx} className="text-center">
+            <div key={idx} style={{ textAlign: "center" }}>
               <div
                 style={{
                   width: 48,
                   height: 48,
                   borderRadius: "50%",
                   background: "#eef2ff",
-                  border: "2px solid #c7d2fe",
+                  border: "1px solid #c7d2fe",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  margin: "0 auto 16px",
-                  fontFamily: "'Syne', sans-serif",
+                  margin: "0 auto 18px",
+                  fontFamily: "'Bricolage Grotesque', sans-serif",
                   fontWeight: 700,
                   fontSize: 18,
-                  color: "#6366f1",
+                  color: "#4f46e5",
                 }}
               >
                 {idx + 1}
               </div>
               <h3
                 style={{
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'Bricolage Grotesque', sans-serif",
                   fontWeight: 700,
                   fontSize: 16,
                   color: "#0f172a",
@@ -79,10 +96,10 @@ export default function HowItWorks() {
               </h3>
               <p
                 style={{
-                  fontFamily: "'DM Sans', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   fontWeight: 400,
-                  fontSize: 13,
-                  color: "#475569",
+                  fontSize: 14,
+                  color: "#666",
                   lineHeight: 1.7,
                 }}
               >
@@ -95,4 +112,3 @@ export default function HowItWorks() {
     </section>
   );
 }
-

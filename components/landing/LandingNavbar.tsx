@@ -11,7 +11,7 @@ export default function LandingNavbar() {
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 50,
+        zIndex: 39,
         background: "#ffffff",
         borderBottom: "0.5px solid #e2e1db",
         height: 58,
@@ -19,42 +19,23 @@ export default function LandingNavbar() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "0 6%",
+        padding: "0 40px",
       }}
     >
       {/* Logo */}
-      <Link
-        href="/"
-        style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
-      >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            background: "#4f46e5",
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-            <polygon points="8,5 19,12 8,19" fill="#ffffff" />
-          </svg>
-        </div>
-        <span
-          style={{
-            fontFamily: "'Bricolage Grotesque', sans-serif",
-            fontWeight: 700,
-            fontSize: 16,
-            letterSpacing: "-0.3px",
-            lineHeight: 1,
-          }}
-        >
-          <span style={{ color: "#0f172a" }}>FlagLink</span>
-          <span style={{ color: "#4f46e5" }}>AI</span>
-        </span>
+      <Link href="/" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", color: "inherit" }}>
+        <svg width="140" height="32" viewBox="0 0 140 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+          <rect x="6" y="8" width="16" height="2.2" rx="1.1" fill="white" opacity="0.35"/>
+          <rect x="6" y="13" width="20" height="2.2" rx="1.1" fill="white"/>
+          <rect x="6" y="18" width="11" height="2.2" rx="1.1" fill="white" opacity="0.35"/>
+          <circle cx="22" cy="23" r="4" fill="#4f46e5" stroke="white" strokeWidth="1.8"/>
+          <line x1="25" y1="26" x2="27.5" y2="28.5" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+          <text x="40" y="22" fontFamily="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"
+            fontSize="14" fontWeight="600" fill="currentColor" letterSpacing="-0.3">FlagLink</text>
+          <text x="100" y="22" fontFamily="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"
+            fontSize="14" fontWeight="700" fill="#4f46e5" letterSpacing="-0.3">AI</text>
+        </svg>
       </Link>
 
       {/* Right side */}

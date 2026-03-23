@@ -3,29 +3,31 @@ import ScanSection from "@/components/landing/ScanSection";
 
 export default function ScanPage() {
   return (
-    <main className="min-h-screen bg-[#ffffff] flex flex-col items-center justify-center">
-      <div className="w-full max-w-[1100px] px-6 py-8 text-center">
+    <main style={{ position: "relative" }}>
+      {/* Back button — top left */}
+      <div style={{ position: "absolute", top: 20, left: 28, zIndex: 10 }}>
         <Link
           href="/"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
             textDecoration: "none",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 500,
             fontSize: 13,
-            color: "#475569",
-            border: "1.5px solid #cbd5e1",
-            borderRadius: 100,
-            padding: "8px 16px",
+            color: "#555",
+            border: "0.5px solid #e2e1db",
+            borderRadius: 50,
+            padding: "7px 16px",
+            background: "#ffffff",
           }}
         >
           ← Back
         </Link>
       </div>
+
       <ScanSection />
     </main>
   );
 }
-

@@ -3,29 +3,58 @@ import HowItWorks from "@/components/landing/HowItWorks";
 
 export default function HowItWorksPage() {
   return (
-    <main className="min-h-screen bg-[#ffffff] flex flex-col items-center justify-center">
-      <div className="w-full max-w-[1100px] px-6 pt-8 text-center">
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f5f4f0",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+      }}
+    >
+      {/* Back button — top left */}
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          left: 28,
+          zIndex: 10,
+        }}
+      >
         <Link
           href="/"
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
             textDecoration: "none",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 500,
             fontSize: 13,
-            color: "#475569",
-            border: "1.5px solid #cbd5e1",
-            borderRadius: 100,
-            padding: "8px 16px",
+            color: "#555",
+            border: "0.5px solid #e2e1db",
+            borderRadius: 50,
+            padding: "7px 16px",
+            background: "#ffffff",
+            transition: "border-color 0.15s",
           }}
         >
           ← Back
         </Link>
       </div>
-      <HowItWorks />
+
+      {/* Content fills the rest */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+        }}
+      >
+        <HowItWorks />
+      </div>
     </main>
   );
 }
-

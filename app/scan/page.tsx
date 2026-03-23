@@ -432,7 +432,7 @@ export default function ScanPage() {
                         tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
-                        formatter={(value: number) => [`${value}`, "Risk Score"]}
+                        formatter={(value) => [`${value}`, "Risk Score"]}
                         cursor={{ fill: "rgba(0,0,0,0.03)" }}
                       />
                       <Bar dataKey="score" radius={[4, 4, 0, 0]} maxBarSize={30}

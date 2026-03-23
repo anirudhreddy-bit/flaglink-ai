@@ -1,17 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function LandingNavbar() {
   const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleSignIn = () => {
+    if (session?.user) {
+      // Already logged in — go straight to scan
+      router.push("/scan");
+    } else {
+      router.push("/auth/signin");
+    }
+  };
 
   return (
     <nav
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 39,
+        zIndex: 50,
         background: "#ffffff",
         borderBottom: "0.5px solid #e2e1db",
         height: 58,
@@ -19,11 +29,11 @@ export default function LandingNavbar() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "0 40px",
+        padding: "0 6%",
       }}
     >
       {/* Logo */}
-      <Link href="/" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", color: "inherit" }}>
+      <a href="/" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", color: "inherit" }}>
         <svg width="140" height="32" viewBox="0 0 140 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect width="32" height="32" rx="8" fill="#4f46e5"/>
           <rect x="6" y="8" width="16" height="2.2" rx="1.1" fill="white" opacity="0.35"/>
@@ -36,86 +46,21 @@ export default function LandingNavbar() {
           <text x="100" y="22" fontFamily="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"
             fontSize="14" fontWeight="700" fill="#4f46e5" letterSpacing="-0.3">AI</text>
         </svg>
-      </Link>
+      </a>
 
-      {/* Right side */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {session?.user ? (
-          <Link
-            href="/account"
-            style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "#eef2ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "'Bricolage Grotesque', sans-serif",
-                fontWeight: 700,
-                fontSize: 11,
-                color: "#4f46e5",
-                flexShrink: 0,
-              }}
-            >
-              {(session.user.name || session.user.email || "FL")
-                .split(" ")
-                .map((w: string) => w[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
-            </div>
-            <span
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 13,
-                color: "#444",
-                fontWeight: 500,
-              }}
-            >
-              {session.user.name?.split(" ")[0] || session.user.email}
-            </span>
-          </Link>
-        ) : (
-          <>
-            <Link
-              href="/auth/signin"
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "#555",
-                textDecoration: "none",
-                padding: "7px 16px",
-                border: "0.5px solid #e2e1db",
-                borderRadius: 50,
-                transition: "border-color 0.15s",
-              }}
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/auth/signup"
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#ffffff",
-                textDecoration: "none",
-                padding: "7px 18px",
-                background: "#4f46e5",
-                borderRadius: 50,
-                transition: "background 0.15s",
-              }}
-            >
-              Start Free
-            </Link>
-          </>
-        )}
-      </div>
+      {/* Sign In — always visible, redirects to /scan if already logged in */}
+      <button
+        onClick={handleSignIn}
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 13, fontWeight: 600, color: "#ffffff",
+          cursor: "pointer", padding: "7px 18px",
+          border: "none", borderRadius: 50,
+          background: "#4f46e5",
+        }}
+      >
+        Sign In
+      </button>
     </nav>
   );
 }

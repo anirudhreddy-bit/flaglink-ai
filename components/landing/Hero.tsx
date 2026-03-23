@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ScanCardDemo from "./ScanCardDemo";
+import ScanCTAButton from "./ScanCTAButton";
 
 export default function Hero() {
   return (
@@ -104,25 +105,7 @@ export default function Hero() {
               marginBottom: 20,
             }}
           >
-            <Link
-              href="/scan"
-              style={{
-                background: "#4f46e5",
-                color: "#ffffff",
-                borderRadius: 50,
-                padding: "12px 26px",
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 600,
-                fontSize: 14,
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "background 0.15s",
-              }}
-            >
-              Start Scanning →
-            </Link>
+            <ScanCTAButton />
             <Link
               href="/how-it-works"
               style={{

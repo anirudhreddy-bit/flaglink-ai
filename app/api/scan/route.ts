@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const SYSTEM_PROMPT = `You are a legal expert analyzing Terms & Conditions for potential risks. 
 Analyze the document thoroughly and return ONLY valid JSON with this exact shape:
 {
+  "company": string (the name of the company or service whose T&C this is, e.g. "Spotify", "Netflix", "OpenAI" — infer from the document text; use "Unknown" if you cannot determine it),
   "riskLevel": "green" | "yellow" | "red",
   "score": number (0-100, where 0=completely safe, 100=extremely risky),
   "redFlags": [{ "clause": string, "explanation": string, "severity": "low"|"medium"|"high" }],
@@ -88,13 +89,14 @@ async function fetchPageText(url: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    // Dynamically import auth — may fail on Vercel if better-sqlite3 isn't available
-    let session: any = null;
+    // Read JWT directly from request cookie — works reliably in App Router
+    let userId: string | null = null;
     try {
-      const { auth } = await import("@/auth");
-      session = await auth();
-    } catch (authError) {
-      console.warn("Auth unavailable (likely no DB on serverless):", authError);
+      const { getToken } = await import("next-auth/jwt");
+      const token = await getToken({ req: request });
+      userId = (token?.id as string) ?? null;
+    } catch {
+      // auth unavailable (e.g. serverless without DB)
     }
 
     const body = await request.json();
@@ -189,6 +191,11 @@ export async function POST(request: NextRequest) {
       throw new Error("Invalid response shape from Claude");
     }
 
+    // Fallback company name: use URL domain or "Unknown"
+    if (!result.company || typeof result.company !== "string") {
+      result.company = extractWebsiteName(input.trim());
+    }
+
     // Ensure score is in valid range (0-100)
     if (result.score < 0 || result.score > 100) {
       // Calculate score based on red flags if it's out of range
@@ -210,12 +217,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Save scan to database if user is authenticated
-    if (session?.user?.id) {
+    if (userId) {
       try {
         const { db } = await import("@/lib/db");
         const { scans } = await import("@/lib/db/schema");
         await db.insert(scans).values({
-          userId: session.user.id,
+          userId,
           input: input.trim(),
           website: extractWebsiteName(input.trim()),
           riskLevel: result.riskLevel,
@@ -225,7 +232,6 @@ export async function POST(request: NextRequest) {
         });
       } catch (dbError) {
         console.error("Failed to save scan:", dbError);
-        // Don't fail the request if DB save fails
       }
     }
 

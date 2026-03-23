@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 function ArrowIcon({ size = 16 }: { size?: number }) {
   return (
@@ -37,7 +35,6 @@ export default function ScanSection() {
   const [error, setError] = useState("");
 
   const router = useRouter();
-  const { data: session } = useSession();
 
   const handleScan = async () => {
     if (!input.trim()) {
@@ -75,11 +72,10 @@ export default function ScanSection() {
       id="scan"
       style={{
         width: "100%",
-        minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "80px 6%",
+        padding: "88px 6% 60px",
         background: "#f5f4f0",
       }}
     >
@@ -203,29 +199,6 @@ export default function ScanSection() {
           Not legal advice. For informational purposes only.
         </p>
 
-        {session?.user ? (
-          <Link
-            href="/account?tab=history"
-            style={{
-              display: "block",
-              marginTop: 12,
-              fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 400,
-              fontSize: 12,
-              color: "#94a3b8",
-              textDecoration: "none",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#6366f1";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#94a3b8";
-            }}
-          >
-            View Scan History
-          </Link>
-        ) : null}
       </div>
     </section>
   );

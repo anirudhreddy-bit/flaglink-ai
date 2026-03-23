@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -12,6 +12,14 @@ function SignInContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { status } = useSession();
+
+  // If session is still valid, skip sign-in and go straight to scan
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/scan");
+    }
+  }, [status, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +54,7 @@ function SignInContent() {
       return;
     }
 
-    router.push("/");
+    router.push("/scan");
   };
 
   const handleGitHubSignIn = () => {

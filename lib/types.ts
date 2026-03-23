@@ -5,7 +5,6 @@ export interface RedFlag {
 }
 
 export interface ScanResult {
-  company?: string;
   riskLevel: "green" | "yellow" | "red";
   score: number;
   redFlags: RedFlag[];

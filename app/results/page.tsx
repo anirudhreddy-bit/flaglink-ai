@@ -22,19 +22,19 @@ const severityBg = (s: string) => {
   return "#f9fafb";
 };
 
-// ── Domain / company name helper ──────────────────────────────────────────
+// ── Domain extractor ──────────────────────────────────────────────────────
 const extractDomain = (input: string) => {
   try {
     const url = new URL(input.trim());
     return url.hostname.replace("www.", "");
   } catch {
-    return "";
+    return "Pasted Document";
   }
 };
 
 export default function ResultsPage() {
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [displayName, setDisplayName] = useState("Document");
+  const [domain, setDomain] = useState("Document");
   const [copied, setCopied] = useState(false);
   const [allScans, setAllScans] = useState<Scan[]>([]);
   const [currentScanIndex, setCurrentScanIndex] = useState(-1);
@@ -50,13 +50,7 @@ export default function ResultsPage() {
     }
 
     const rawInput = sessionStorage.getItem("scanInput") || "";
-    // Prefer the AI-detected company name; fall back to URL domain
-    const parsed = JSON.parse(stored);
-    const name =
-      parsed?.company ||
-      extractDomain(rawInput) ||
-      "Document";
-    setDisplayName(name);
+    setDomain(extractDomain(rawInput));
 
     const allScansStored = sessionStorage.getItem("allScans");
     if (allScansStored) {
@@ -73,7 +67,7 @@ export default function ResultsPage() {
     if (!isPro) return;
     try {
       await navigator.clipboard.writeText(
-        `https://flaglink.ai/report/${displayName}`
+        `https://flaglink.ai/report/${domain}`
       );
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -224,7 +218,7 @@ export default function ResultsPage() {
                 <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">
                   Scan result
                 </p>
-                <h2 className="text-xl font-bold text-slate-900">{displayName}</h2>
+                <h2 className="text-xl font-bold text-slate-900">{domain}</h2>
               </div>
               <p className="text-sm text-slate-500">
                 {sortedFlags.length} flag{sortedFlags.length !== 1 ? "s" : ""} found

@@ -4,7 +4,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const SYSTEM_PROMPT = `You are a legal expert analyzing Terms & Conditions for potential risks. 
 Analyze the document thoroughly and return ONLY valid JSON with this exact shape:
 {
-  "company": string (the name of the company or service whose T&C this is, e.g. "Spotify", "Netflix", "OpenAI" — infer from the document text; use "Unknown" if you cannot determine it),
   "riskLevel": "green" | "yellow" | "red",
   "score": number (0-100, where 0=completely safe, 100=extremely risky),
   "redFlags": [{ "clause": string, "explanation": string, "severity": "low"|"medium"|"high" }],
@@ -189,11 +188,6 @@ export async function POST(request: NextRequest) {
       !Array.isArray(result.advice)
     ) {
       throw new Error("Invalid response shape from Claude");
-    }
-
-    // Fallback company name: use URL domain or "Unknown"
-    if (!result.company || typeof result.company !== "string") {
-      result.company = extractWebsiteName(input.trim());
     }
 
     // Ensure score is in valid range (0-100)

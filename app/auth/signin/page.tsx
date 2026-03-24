@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -12,6 +12,8 @@ function SignInContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get("registered") === "true";
   const { status } = useSession();
 
   // If session is still valid, skip sign-in and go straight to scan
@@ -70,6 +72,18 @@ function SignInContent() {
         </h1>
         <p className="text-sm text-slate-500">Sign in to your account</p>
       </div>
+
+      {/* Success banner after signup */}
+      {justRegistered && (
+        <div className="mb-6 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-emerald-700 mb-0.5">
+            Account created successfully!
+          </p>
+          <p className="text-xs text-emerald-500">
+            Sign in below to get started.
+          </p>
+        </div>
+      )}
 
       {/* Form Card */}
       <div className="rounded-2xl bg-white border border-slate-200 p-8 shadow-sm space-y-6">

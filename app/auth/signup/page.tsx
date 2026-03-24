@@ -49,13 +49,8 @@ export default function SignUpPage() {
         return;
       }
 
-      const result = await signIn("credentials", { email, password, redirect: false });
-      if (result?.ok) {
-        router.push("/");
-      } else {
-        setError("Account created! Please sign in manually.");
-        router.push("/auth/signin");
-      }
+      // Account created — send to sign-in with a success flag
+      router.push("/auth/signin?registered=true");
     } catch (err) {
       console.error("Signup error:", err);
       setError("An unexpected error occurred. Please try again.");

@@ -97,12 +97,10 @@ async function extractTextFromFile(file: File): Promise<{ text: string; name: st
 
   if (ext === "pdf") {
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    // Import at call-site to avoid Next.js build issues with pdf-parse test files
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse/lib/pdf-parse.js");
-    const parsed = await pdfParse(buffer);
-    return { text: parsed.text, name };
+    const { extractText } = await import("unpdf");
+    const pages = await extractText(new Uint8Array(arrayBuffer), { mergePages: true });
+    const text = Array.isArray(pages) ? pages.join("\n") : String(pages);
+    return { text, name };
   }
 
   if (ext === "docx") {

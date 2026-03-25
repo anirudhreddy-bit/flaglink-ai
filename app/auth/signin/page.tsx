@@ -14,14 +14,15 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get("registered") === "true";
+  const callbackUrl = searchParams.get("callbackUrl") || "/scan";
   const { status } = useSession();
 
-  // If session is still valid, skip sign-in and go straight to scan
+  // If already authenticated, go to callback or dashboard
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/scan");
+      router.replace(callbackUrl);
     }
-  }, [status, router]);
+  }, [status, router, callbackUrl]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +57,7 @@ function SignInContent() {
       return;
     }
 
-    router.push("/scan");
+    router.push(callbackUrl);
   };
 
   const handleGitHubSignIn = () => {

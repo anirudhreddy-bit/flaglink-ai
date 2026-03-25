@@ -86,6 +86,36 @@ async function fetchPageText(url: string): Promise<string> {
   return text;
 }
 
+async function extractTextFromFile(file: File): Promise<{ text: string; name: string }> {
+  const name = file.name.replace(/\.[^.]+$/, ""); // strip extension
+  const ext  = file.name.split(".").pop()?.toLowerCase() ?? "";
+
+  if (ext === "txt") {
+    const text = await file.text();
+    return { text, name };
+  }
+
+  if (ext === "pdf") {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    // Import at call-site to avoid Next.js build issues with pdf-parse test files
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+    const parsed = await pdfParse(buffer);
+    return { text: parsed.text, name };
+  }
+
+  if (ext === "docx") {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const mammoth = await import("mammoth");
+    const result = await mammoth.extractRawText({ buffer });
+    return { text: result.value, name };
+  }
+
+  throw new Error("Unsupported file type. Please upload a .txt, .pdf, or .docx file.");
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Read JWT directly from request cookie — works reliably in App Router
@@ -98,14 +128,48 @@ export async function POST(request: NextRequest) {
       // auth unavailable (e.g. serverless without DB)
     }
 
-    const body = await request.json();
-    const { input } = body;
+    const contentType = request.headers.get("content-type") ?? "";
+    let input  = "";
+    let uploadedFileName: string | null = null;
+    let imageBase64: string | null = null;
+    let imageMediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | null = null;
 
-    if (!input || typeof input !== "string" || input.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Please provide a URL or text to analyze." },
-        { status: 400 }
-      );
+    const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic"];
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const file = formData.get("file") as File | null;
+      if (!file || file.size === 0) {
+        return NextResponse.json({ error: "No file received." }, { status: 400 });
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "File too large. Maximum size is 10 MB." }, { status: 400 });
+      }
+
+      uploadedFileName = file.name.replace(/\.[^.]+$/, "");
+
+      if (IMAGE_TYPES.includes(file.type.toLowerCase())) {
+        // Vision path — send image directly to Claude
+        const buffer = Buffer.from(await file.arrayBuffer());
+        imageBase64 = buffer.toString("base64");
+        // Normalise heic → jpeg for Claude
+        const mt = file.type.toLowerCase().replace("image/heic", "image/jpeg").replace("image/jpg", "image/jpeg");
+        imageMediaType = mt as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+      } else {
+        // Text-extraction path (PDF / DOCX / TXT)
+        try {
+          const extracted = await extractTextFromFile(file);
+          input = extracted.text;
+        } catch (e: unknown) {
+          return NextResponse.json(
+            { error: e instanceof Error ? e.message : "Could not read file." },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      const body = await request.json();
+      input = body.input ?? "";
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -116,52 +180,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let textToAnalyze: string;
+    const anthropic = new Anthropic({ apiKey });
+    let message: Awaited<ReturnType<typeof anthropic.messages.create>>;
 
-    if (isUrl(input.trim())) {
-      try {
-        textToAnalyze = await fetchPageText(input.trim());
-      } catch {
+    if (imageBase64 && imageMediaType) {
+      // ── Vision path ──────────────────────────────────────────────────────
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: imageMediaType, data: imageBase64 },
+            },
+            {
+              type: "text",
+              text: "This image contains Terms & Conditions or a legal document. Read every visible word in the image and analyze it as specified. Return ONLY the JSON.",
+            },
+          ],
+        }],
+      });
+    } else {
+      // ── Text path ────────────────────────────────────────────────────────
+      if (!input || input.trim().length === 0) {
         return NextResponse.json(
-          {
-            error:
-              "Could not fetch the URL. Please check it's accessible or paste the text directly.",
-          },
+          { error: "Please provide a URL, text, or file to analyze." },
           { status: 400 }
         );
       }
-    } else {
-      textToAnalyze = input.trim();
+
+      let textToAnalyze: string;
+      if (isUrl(input.trim())) {
+        try {
+          textToAnalyze = await fetchPageText(input.trim());
+        } catch {
+          return NextResponse.json(
+            { error: "Could not fetch the URL. Please check it's accessible or paste the text directly." },
+            { status: 400 }
+          );
+        }
+      } else {
+        textToAnalyze = input.trim();
+      }
+
+      if (textToAnalyze.length > 100000) textToAnalyze = textToAnalyze.slice(0, 100000);
+      if (textToAnalyze.length < 50) {
+        return NextResponse.json(
+          { error: "The text seems too short to be Terms & Conditions. Please provide more content." },
+          { status: 400 }
+        );
+      }
+
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: `Analyze these Terms & Conditions:\n\n${textToAnalyze}` }],
+      });
     }
-
-    // Truncate to ~100k chars to stay within context limits
-    if (textToAnalyze.length > 100000) {
-      textToAnalyze = textToAnalyze.slice(0, 100000);
-    }
-
-    if (textToAnalyze.length < 50) {
-      return NextResponse.json(
-        {
-          error:
-            "The text seems too short to be Terms & Conditions. Please provide more content.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const anthropic = new Anthropic({ apiKey });
-
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: `Analyze these Terms & Conditions:\n\n${textToAnalyze}`,
-        },
-      ],
-    });
 
     const responseText =
       message.content[0].type === "text" ? message.content[0].text : "";
@@ -217,8 +296,8 @@ export async function POST(request: NextRequest) {
         const { scans } = await import("@/lib/db/schema");
         await db.insert(scans).values({
           userId,
-          input: input.trim(),
-          website: extractWebsiteName(input.trim()),
+          input: uploadedFileName ? `[file] ${uploadedFileName}` : input.trim(),
+          website: uploadedFileName ?? extractWebsiteName(input.trim()),
           riskLevel: result.riskLevel,
           score: result.score,
           redFlags: result.redFlags,

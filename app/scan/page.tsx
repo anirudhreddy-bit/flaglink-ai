@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FlagLinkSidebar } from "@/components/ui/flaglink-sidebar";
+import { SessionGuard } from "@/components/SessionGuard";
 import {
   BarChart,
   Bar,
@@ -93,7 +94,13 @@ function SkeletonCard({ h = 110, delay = 0 }: { h?: number; delay?: number }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function ScanPage() {
+  const [activeTab, setActiveTab] = useState<"url" | "paste" | "file" | "camera">("url");
   const [input, setInput] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -172,21 +179,72 @@ export default function ScanPage() {
   const animAvgScore   = useCountUp(avgRiskScore, animated);
   const animScansLeft  = useCountUp(Math.max(3 - scansUsed, 0), animated);
 
+  // ── Scan stage cycling ────────────────────────────────────────────────────
+  const scanStages = [
+    "Fetching document…",
+    "Identifying clauses…",
+    "Scanning for red flags…",
+    "Assessing risk level…",
+    "Building your report…",
+  ];
+  const [stageIndex, setStageIndex] = useState(0);
+  const [completedStages, setCompletedStages] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!scanLoading) {
+      setStageIndex(0);
+      setCompletedStages([]);
+      return;
+    }
+    setStageIndex(0);
+    setCompletedStages([]);
+    const interval = setInterval(() => {
+      setStageIndex((prev) => {
+        const next = prev + 1;
+        if (next >= scanStages.length - 1) {
+          clearInterval(interval);
+          return scanStages.length - 1;
+        }
+        setCompletedStages((c) => [...c, prev]);
+        return next;
+      });
+    }, 1800);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanLoading]);
+
   // ── Scan handler ──────────────────────────────────────────────────────────
   const handleScan = async () => {
-    if (!input.trim()) { setError("Please enter a URL or paste Terms & Conditions text."); return; }
+    if (activeTab === "file" || activeTab === "camera") {
+      if (!file) {
+        setError(activeTab === "camera"
+          ? "Please take or upload a photo first."
+          : "Please select or drop a file to upload.");
+        return;
+      }
+    } else {
+      if (!input.trim()) { setError("Please enter a URL or paste Terms & Conditions text."); return; }
+    }
     setError("");
     setScanLoading(true);
     try {
-      const res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: input.trim() }),
-      });
+      let res: Response;
+      if ((activeTab === "file" || activeTab === "camera") && file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        res = await fetch("/api/scan", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: input.trim() }),
+        });
+      }
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Something went wrong. Please try again."); return; }
       sessionStorage.setItem("scanResult", JSON.stringify(data));
-      sessionStorage.setItem("scanInput", input.trim());
+      sessionStorage.setItem("scanInput",
+        (activeTab === "file" || activeTab === "camera") ? (file?.name ?? "") : input.trim());
       router.push("/results");
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -195,12 +253,32 @@ export default function ScanPage() {
     }
   };
 
+  // ── Image preview helper ──────────────────────────────────────────────────
+  const handleImageFile = (f: File | null) => {
+    setFile(f);
+    setImagePreview(null);
+    if (error) setError("");
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(f);
+  };
+
   // ── CSS keyframes injected once ───────────────────────────────────────────
   const styles = `
-    @keyframes skPulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
-    @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes slideIn { from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes popIn   { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+    @keyframes skPulse   { 0%,100%{opacity:1} 50%{opacity:0.45} }
+    @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideIn   { from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes popIn     { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+    @keyframes spin      { to{transform:rotate(360deg)} }
+    @keyframes orbitA    { from{transform:rotate(0deg) translateX(28px)} to{transform:rotate(360deg) translateX(28px)} }
+    @keyframes orbitB    { from{transform:rotate(120deg) translateX(28px)} to{transform:rotate(480deg) translateX(28px)} }
+    @keyframes orbitC    { from{transform:rotate(240deg) translateX(28px)} to{transform:rotate(600deg) translateX(28px)} }
+    @keyframes scanPulse { 0%,100%{opacity:0.5;transform:scaleX(0.7)} 50%{opacity:1;transform:scaleX(1)} }
+    @keyframes fadeInUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes checkPop  { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+    @keyframes overlayIn { from{opacity:0} to{opacity:1} }
+    @keyframes progressFill { from{width:0%} to{width:100%} }
   `;
 
   const fadeCard = (delay: number) =>
@@ -209,18 +287,131 @@ export default function ScanPage() {
       : { opacity: 0 };
 
   return (
+    <SessionGuard>
     <div className="min-h-screen" style={{ background: "#f5f4f0" }}>
       <style>{styles}</style>
 
-      {/* Sidebar — untouched */}
+      {/* ── Analyzing Overlay ──────────────────────────────────────────── */}
+      {scanLoading && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 100,
+          background: "rgba(15,23,42,0.82)",
+          backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          animation: "overlayIn 0.3s ease",
+        }}>
+          <div style={{
+            background: "#ffffff", borderRadius: 24,
+            padding: "40px 36px", width: "100%", maxWidth: 400,
+            boxShadow: "0 32px 80px rgba(0,0,0,0.3)",
+            animation: "fadeInUp 0.35s ease",
+          }}>
+            {/* Orbital spinner */}
+            <div style={{ position: "relative", width: 72, height: 72, margin: "0 auto 28px" }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: "50%",
+                background: "linear-gradient(135deg,#ede9fe,#e0e7ff)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                  <rect width="24" height="24" rx="6" fill="#4f46e5"/>
+                  <rect x="4" y="5.5" width="10" height="1.5" rx=".75" fill="white" opacity=".35"/>
+                  <rect x="4" y="9" width="13" height="1.5" rx=".75" fill="white"/>
+                  <rect x="4" y="12.5" width="7" height="1.5" rx=".75" fill="white" opacity=".35"/>
+                  <circle cx="16" cy="16" r="3" fill="#4f46e5" stroke="white" strokeWidth="1.2"/>
+                  <line x1="18" y1="18" x2="20" y2="20" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              {/* Orbiting dots */}
+              {["orbitA","orbitB","orbitC"].map((anim, i) => (
+                <div key={i} style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: 8, height: 8, marginTop: -4, marginLeft: -4,
+                  borderRadius: "50%",
+                  background: i === 0 ? "#4f46e5" : i === 1 ? "#7c3aed" : "#06b6d4",
+                  animation: `${anim} ${1.4 + i * 0.2}s linear infinite`,
+                  transformOrigin: "center center",
+                }} />
+              ))}
+            </div>
+
+            {/* Title */}
+            <h3 style={{
+              textAlign: "center", fontSize: 18, fontWeight: 700,
+              color: "#0f172a", marginBottom: 6,
+              fontFamily: "'Bricolage Grotesque', sans-serif", letterSpacing: "-0.02em",
+            }}>
+              Analyzing your document
+            </h3>
+            <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginBottom: 28 }}>
+              Claude AI is scanning every clause for red flags
+            </p>
+
+            {/* Stage list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
+              {scanStages.map((stage, i) => {
+                const done = completedStages.includes(i);
+                const active = i === stageIndex;
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    opacity: i > stageIndex ? 0.3 : 1,
+                    transition: "opacity 0.4s",
+                  }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: done ? "#22c55e" : active ? "#4f46e5" : "#f1f5f9",
+                      border: active && !done ? "2px solid #4f46e5" : "none",
+                      transition: "background 0.3s",
+                    }}>
+                      {done ? (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                          style={{ animation: "checkPop 0.3s ease" }}>
+                          <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2"
+                            strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : active ? (
+                        <div style={{
+                          width: 8, height: 8, borderRadius: "50%",
+                          border: "2px solid transparent",
+                          borderTopColor: "white",
+                          animation: "spin 0.7s linear infinite",
+                        }} />
+                      ) : (
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#cbd5e1" }} />
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 13, color: done ? "#22c55e" : active ? "#0f172a" : "#94a3b8",
+                      fontWeight: active || done ? 600 : 400,
+                      transition: "color 0.3s",
+                    }}>
+                      {stage}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ width: "100%", background: "#f1f5f9", borderRadius: 99, height: 5, overflow: "hidden" }}>
+              <div style={{
+                height: 5, borderRadius: 99,
+                background: "linear-gradient(90deg,#4f46e5,#7c3aed)",
+                width: `${Math.round(((completedStages.length) / scanStages.length) * 100)}%`,
+                transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)",
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar — reads session automatically */}
       <FlagLinkSidebar
         collapsible
-        user={{ name: "flaglinkai", email: "user@example.com" }}
         scansUsed={scansUsed}
         plan="free"
-        recentScans={recentScans.slice(0, 3).map((s) => ({
-          id: s.id, domain: s.domain, score: s.score, date: s.date,
-        }))}
       />
 
       <main className="pt-16 pb-20">
@@ -259,38 +450,243 @@ export default function ScanPage() {
               style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 22, letterSpacing: "-0.02em", color: "#0f172a" }}>
               Ready to scan?
             </h2>
-            <p className="text-center text-xs text-gray-400 mb-5" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Paste a URL or the full Terms &amp; Conditions below.
+            <p className="text-center text-xs text-gray-400 mb-5">
+              Add a link, paste text, or upload a file.
             </p>
-            <textarea
-              value={input}
-              onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
-              placeholder={"Paste a URL (e.g. https://spotify.com/terms)\nor paste the full T&C text..."}
-              disabled={scanLoading}
-              rows={5}
-              className="w-full resize-y rounded-xl bg-[#f9f8f5] border border-[#e2e1db] px-4 py-3 text-sm leading-relaxed text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] mb-4"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            />
+
+            {/* Tab switcher */}
+            <div style={{
+              display: "flex", gap: 4, marginBottom: 16,
+              background: "#f5f4f0", borderRadius: 14, padding: 4,
+            }}>
+              {([
+                { id: "url",    label: "Link",   icon: "🔗" },
+                { id: "paste",  label: "Paste",  icon: "📋" },
+                { id: "file",   label: "Upload", icon: "📎" },
+                { id: "camera", label: "Camera", icon: "📷" },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setError(""); setFile(null); setImagePreview(null); }}
+                  style={{
+                    flex: 1, padding: "7px 0", borderRadius: 10, border: "none",
+                    background: activeTab === tab.id ? "#ffffff" : "transparent",
+                    boxShadow: activeTab === tab.id ? "0 1px 6px rgba(0,0,0,0.09)" : "none",
+                    fontSize: 11, fontWeight: 600,
+                    color: activeTab === tab.id ? "#0f172a" : "#94a3b8",
+                    cursor: "pointer", transition: "all 0.18s",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                  }}
+                >
+                  <span>{tab.icon}</span>{tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* URL tab */}
+            {activeTab === "url" && (
+              <input
+                type="url"
+                value={input}
+                onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
+                placeholder="https://spotify.com/terms"
+                disabled={scanLoading}
+                className="w-full rounded-xl bg-[#f9f8f5] border border-[#e2e1db] px-4 py-3 text-sm text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] mb-4"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              />
+            )}
+
+            {/* Paste tab */}
+            {activeTab === "paste" && (
+              <textarea
+                value={input}
+                onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
+                placeholder={"Paste the full Terms & Conditions text here…"}
+                disabled={scanLoading}
+                rows={6}
+                className="w-full resize-y rounded-xl bg-[#f9f8f5] border border-[#e2e1db] px-4 py-3 text-sm leading-relaxed text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] mb-4"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              />
+            )}
+
+            {/* Upload tab */}
+            {activeTab === "file" && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,.pdf,.docx"
+                  hidden
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    setFile(f);
+                    if (error) setError("");
+                  }}
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    const dropped = e.dataTransfer.files?.[0] ?? null;
+                    setFile(dropped);
+                    if (error) setError("");
+                  }}
+                  style={{
+                    border: `2px dashed ${dragOver ? "#4f46e5" : file ? "#22c55e" : "#d1d5db"}`,
+                    borderRadius: 14,
+                    background: dragOver ? "#ede9fe" : file ? "#f0fdf4" : "#f9f8f5",
+                    padding: "28px 20px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    marginBottom: 16,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {file ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: "50%",
+                        background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 20,
+                      }}>✅</div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#15803d", margin: 0 }}>{file.name}</p>
+                      <p style={{ fontSize: 11, color: "#86efac", margin: 0 }}>
+                        {(file.size / 1024).toFixed(1)} KB · Click to change
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: "50%",
+                        background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 22,
+                      }}>📎</div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0 }}>
+                        Drop your file here, or click to browse
+                      </p>
+                      <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>
+                        Supports .PDF, .TXT, .DOCX · Max 10 MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Camera tab */}
+            {activeTab === "camera" && (
+              <>
+                {/* Hidden inputs — one for gallery, one for live camera */}
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+                />
+
+                {imagePreview ? (
+                  // ── Preview ──────────────────────────────────────────────
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "2px solid #e0e7ff" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imagePreview}
+                        alt="T&C preview"
+                        style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block" }}
+                      />
+                      {/* Retake overlay */}
+                      <button
+                        onClick={() => { setFile(null); setImagePreview(null); }}
+                        style={{
+                          position: "absolute", top: 8, right: 8,
+                          background: "rgba(0,0,0,0.55)", border: "none",
+                          color: "#fff", borderRadius: 20, padding: "4px 10px",
+                          fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        }}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#22c55e", textAlign: "center", marginTop: 8, fontWeight: 600 }}>
+                      ✅ {file?.name} ready to scan
+                    </p>
+                  </div>
+                ) : (
+                  // ── Empty state ──────────────────────────────────────────
+                  <div style={{
+                    border: "2px dashed #d1d5db", borderRadius: 14,
+                    background: "#f9f8f5", padding: "24px 16px",
+                    marginBottom: 16,
+                  }}>
+                    {/* Icon */}
+                    <div style={{ textAlign: "center", marginBottom: 16 }}>
+                      <div style={{
+                        width: 52, height: 52, borderRadius: "50%",
+                        background: "#ede9fe", margin: "0 auto 10px",
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                      }}>📷</div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: "0 0 4px" }}>
+                        Take or upload a photo
+                      </p>
+                      <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>
+                        Point your camera at a printed T&amp;C, screenshot, or signage
+                      </p>
+                    </div>
+
+                    {/* Two action buttons */}
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button
+                        onClick={() => cameraInputRef.current?.click()}
+                        style={{
+                          flex: 1, padding: "10px 0", borderRadius: 12,
+                          border: "1.5px solid #4f46e5", background: "#4f46e5",
+                          color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        }}
+                      >
+                        📸 Open Camera
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          flex: 1, padding: "10px 0", borderRadius: 12,
+                          border: "1.5px solid #e2e1db", background: "#fff",
+                          color: "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        }}
+                      >
+                        🖼️ Choose Photo
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 10, color: "#cbd5e1", textAlign: "center", marginTop: 10 }}>
+                      JPG · PNG · WEBP · HEIC supported
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
             {error && <p className="text-xs text-red-700 mb-3">{error}</p>}
+
             <button
               type="button"
               onClick={handleScan}
-              disabled={scanLoading || !input.trim()}
+              disabled={scanLoading || (activeTab === "file" || activeTab === "camera" ? !file : !input.trim())}
               className="w-full h-[50px] rounded-full bg-[#4f46e5] text-white flex items-center justify-center gap-2 font-semibold text-sm transition-all hover:bg-[#4338ca] hover:shadow-[0_8px_24px_rgba(79,70,229,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {scanLoading ? (
-                <>
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="inline-block w-2 h-2 rounded-full bg-white"
-                      style={{ animation: "pulse 1.5s infinite", animationDelay: `${i * 0.2}s` }} />
-                  ))}
-                  <span className="ml-1" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.8)" }}>
-                    Analyzing…
-                  </span>
-                </>
-              ) : (
-                <><span>Scan for Red Flags</span><ArrowIcon /></>
-              )}
+              <span>Scan for Red Flags</span><ArrowIcon />
             </button>
             <p className="text-center mt-3 text-[11px] text-gray-400 italic">
               Not legal advice. For informational purposes only.
@@ -488,5 +884,6 @@ export default function ScanPage() {
 
       </main>
     </div>
+    </SessionGuard>
   );
 }

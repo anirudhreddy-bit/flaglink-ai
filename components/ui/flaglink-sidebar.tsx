@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 // ─── Types ───────────────────────────────
@@ -142,13 +142,17 @@ function formatScanDate(iso: string): string {
 
 // ─── Sidebar Content (shared mobile+desktop) ─
 const SidebarContent = ({
-  user,
   scansUsed = 0,
   plan = "free",
   recentScans: propScans = [],
 }: FlagLinkSidebarProps) => {
   const [liveScans, setLiveScans] = useState<ScanItem[]>(propScans);
   const router = useRouter();
+  const { data: session } = useSession();
+
+  // Use real session data — fall back gracefully while loading
+  const userName  = session?.user?.name  ?? session?.user?.email?.split("@")[0] ?? "Guest";
+  const userEmail = session?.user?.email ?? "";
 
   useEffect(() => {
     fetch("/api/account/history")
@@ -189,10 +193,10 @@ const SidebarContent = ({
         </div>
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {user?.name ?? "Guest"}
+            {userName}
           </p>
           <p style={{ fontSize: 11, color: "#9ca3af", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {user?.email ?? "Not signed in"}
+            {userEmail || "Not signed in"}
           </p>
         </div>
       </div>

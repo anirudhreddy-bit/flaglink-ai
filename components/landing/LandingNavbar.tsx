@@ -1,20 +1,11 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LandingNavbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-
-  const handleSignIn = () => {
-    if (session?.user) {
-      // Already logged in — go straight to scan
-      router.push("/scan");
-    } else {
-      router.push("/auth/signin");
-    }
-  };
 
   return (
     <nav
@@ -48,19 +39,52 @@ export default function LandingNavbar() {
         </svg>
       </a>
 
-      {/* Sign In — always visible, redirects to /scan if already logged in */}
-      <button
-        onClick={handleSignIn}
-        style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 13, fontWeight: 600, color: "#ffffff",
-          cursor: "pointer", padding: "7px 18px",
-          border: "none", borderRadius: 50,
-          background: "#4f46e5",
-        }}
-      >
-        Sign In
-      </button>
+      {/* Auth buttons */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {status === "loading" ? null : session?.user ? (
+          // Logged in — show Dashboard + Sign Out
+          <>
+            <button
+              onClick={() => router.push("/scan")}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13, fontWeight: 600,
+                color: "#4f46e5", cursor: "pointer",
+                padding: "7px 18px", border: "1.5px solid #4f46e5",
+                borderRadius: 50, background: "transparent",
+              }}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: 13, fontWeight: 600,
+                color: "#ffffff", cursor: "pointer",
+                padding: "7px 18px", border: "none",
+                borderRadius: 50, background: "#4f46e5",
+              }}
+            >
+              Sign Out
+            </button>
+          </>
+        ) : (
+          // Logged out — show Sign In
+          <button
+            onClick={() => router.push("/auth/signin")}
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 13, fontWeight: 600,
+              color: "#ffffff", cursor: "pointer",
+              padding: "7px 18px", border: "none",
+              borderRadius: 50, background: "#4f46e5",
+            }}
+          >
+            Sign In
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

@@ -21,7 +21,10 @@ async function migrate() {
         email TEXT UNIQUE NOT NULL,
         emailVerified TEXT,
         image TEXT,
-        password TEXT
+        password TEXT,
+        plan TEXT NOT NULL DEFAULT 'free',
+        stripeCustomerId TEXT,
+        stripeSubscriptionId TEXT
       );
 
       -- Accounts table (for OAuth)
@@ -83,6 +86,21 @@ async function migrate() {
     for (const statement of statements) {
       if (statement.trim()) {
         sqlite.exec(statement);
+      }
+    }
+
+    // Add billing columns on existing databases (SQLite: ignore duplicate column)
+    const billingAlters = [
+      "ALTER TABLE user ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
+      "ALTER TABLE user ADD COLUMN stripeCustomerId TEXT",
+      "ALTER TABLE user ADD COLUMN stripeSubscriptionId TEXT",
+    ];
+    for (const sql of billingAlters) {
+      try {
+        sqlite.exec(sql);
+      } catch (e) {
+        const msg = String(e?.message || e);
+        if (!msg.includes("duplicate column")) console.warn("ALTER note:", msg);
       }
     }
 

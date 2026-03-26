@@ -52,13 +52,17 @@ export default function HistoryPage() {
   }, []);
 
   const openScan = (scan: Scan) => {
-    sessionStorage.setItem("scanResult", JSON.stringify({
-      riskLevel: scan.riskLevel,
-      score: scan.score,
-      redFlags: scan.redFlags,
-      advice: scan.advice,
-    }));
-    sessionStorage.setItem("fromHistory", "true");
+    sessionStorage.setItem(
+      "scanResult",
+      JSON.stringify({
+        domain: scan.website ?? null,
+        riskLevel: scan.riskLevel,
+        score: scan.score,
+        redFlags: scan.redFlags,
+        advice: scan.advice,
+      })
+    );
+    sessionStorage.setItem("scanInput", scan.input || scan.website || "");
     router.push("/results");
   };
 
@@ -74,6 +78,24 @@ export default function HistoryPage() {
       <main style={{ flex: 1, padding: "48px 6%", maxWidth: 900, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 32 }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "'Inter', sans-serif", fontSize: 13,
+              fontWeight: 500, color: "#6b7280",
+              padding: "4px 0", marginBottom: 16,
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#0f172a"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "#6b7280"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back
+          </button>
           <h1 style={{
             fontFamily: "'Bricolage Grotesque', sans-serif",
             fontWeight: 700, fontSize: 28, color: "#0f172a",

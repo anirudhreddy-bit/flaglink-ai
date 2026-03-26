@@ -10,7 +10,10 @@ async function proxy(request: NextRequest) {
   const isProtected = PROTECTED.some((path) => pathname.startsWith(path));
   if (!isProtected) return NextResponse.next();
 
-  const token = await getToken({ req: request });
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
 
   if (!token) {
     // Not logged in — redirect to sign-in, preserving intended destination
@@ -30,6 +33,7 @@ export const config = {
     "/scan/:path*",
     "/results/:path*",
     "/history/:path*",
+    "/settings",
     "/settings/:path*",
     "/account/:path*",
     "/scanner/:path*",

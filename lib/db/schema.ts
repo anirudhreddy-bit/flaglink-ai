@@ -14,6 +14,9 @@ export const users = sqliteTable("user", {
   emailVerified: text("emailVerified"),
   image: text("image"),
   password: text("password"),
+  plan: text("plan").$type<"free" | "pro">().notNull().default("free"),
+  stripeCustomerId: text("stripeCustomerId"),
+  stripeSubscriptionId: text("stripeSubscriptionId"),
 });
 
 export const accounts = sqliteTable(

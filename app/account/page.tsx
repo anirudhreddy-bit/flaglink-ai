@@ -353,7 +353,7 @@ function AccountPageContent() {
               <div className="rounded-2xl bg-white border border-slate-200 p-14 text-center shadow-sm">
                 <p className="text-slate-400 mb-5">No scans yet.</p>
                 <button
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push("/scan")}
                   className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-indigo-700"
                 >
                   Scan Your First T&amp;C

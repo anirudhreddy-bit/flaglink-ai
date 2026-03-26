@@ -10,3 +10,18 @@ const client = createClient({
 });
 
 export const db = drizzle(client, { schema });
+
+/** True if `user.plan` exists (billing migration applied). Uses PRAGMA — no failing SELECTs. */
+export async function userTableHasPlanColumn(): Promise<boolean> {
+  try {
+    const res = await client.execute({ sql: 'PRAGMA table_info("user")', args: [] });
+    return res.rows.some((row) => {
+      const o = row as Record<string, unknown>;
+      if (o.name === "plan") return true;
+      if (Array.isArray(row) && row[1] === "plan") return true;
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}

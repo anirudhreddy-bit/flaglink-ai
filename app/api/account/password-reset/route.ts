@@ -3,7 +3,10 @@ import { getToken } from "next-auth/jwt";
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({ req: request });
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
     if (!token?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

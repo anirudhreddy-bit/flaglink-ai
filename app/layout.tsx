@@ -12,6 +12,16 @@ export const metadata: Metadata = {
     description:
       "Scan any Terms & Conditions for red flags, shady clauses, and hidden traps.",
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg",        type: "image/svg+xml" },
+      { url: "/favicon.png",     type: "image/png",  sizes: "180x180" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

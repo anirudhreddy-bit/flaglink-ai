@@ -231,7 +231,7 @@ const SidebarContent = ({
     <nav style={{ flex: 1, padding: 12, overflowY: "auto" }}>
 
       {/* New Scan — highlighted */}
-      <a href="/" style={{ display: "block", marginBottom: 4, textDecoration: "none" }}>
+      <a href="/scan" style={{ display: "block", marginBottom: 4, textDecoration: "none" }}>
         <button style={{
           display: "flex", alignItems: "center", gap: 8, width: "100%",
           fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 12,

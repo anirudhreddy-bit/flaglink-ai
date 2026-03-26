@@ -5,26 +5,39 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { FlagLinkSidebar } from "@/components/ui/flaglink-sidebar";
 import { SessionGuard } from "@/components/SessionGuard";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  ResponsiveContainer,
-} from "recharts";
+import { motion } from "framer-motion";
+import { RecentScans, ScanItem as RScanItem } from "@/components/ui/recent-scans";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface RedFlag { clause: string; explanation: string; severity: string; }
 interface ScanRecord {
   id: string;
-  website: string;
+  input: string;
+  website: string | null;
   riskLevel: "green" | "yellow" | "red";
   score: number;
   redFlags: RedFlag[] | null;
+  advice: string[] | unknown;
   createdAt: string;
+}
+
+function pushSavedScanToResults(
+  scan: Pick<ScanRecord, "website" | "input" | "riskLevel" | "score" | "redFlags" | "advice">,
+  router: { push: (href: string) => void }
+) {
+  sessionStorage.setItem(
+    "scanResult",
+    JSON.stringify({
+      domain: scan.website,
+      riskLevel: scan.riskLevel,
+      score: scan.score,
+      redFlags: scan.redFlags,
+      advice: scan.advice,
+    })
+  );
+  sessionStorage.setItem("scanInput", scan.input || scan.website || "");
+  router.push("/results");
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -45,11 +58,92 @@ const formatDate = (iso: string) => {
 const verdictLabel = (r: string) =>
   r === "green" ? "Low Risk" : r === "yellow" ? "Medium Risk" : "High Risk";
 
-const tips = [
-  "The average Terms & Conditions is 8,000 words — longer than most short stories.",
-  "94% of people never read T&Cs before clicking 'I Agree'.",
-  "Forced arbitration clauses appear in over 80% of major app T&Cs.",
-  "Auto-renewal traps cost US consumers over $14 billion per year.",
+const domainIcon = (domain: string): string => {
+  const d = domain.toLowerCase();
+  if (d.includes("spotify"))  return "🎵";
+  if (d.includes("netflix"))  return "🎬";
+  if (d.includes("youtube"))  return "▶️";
+  if (d.includes("google"))   return "🔍";
+  if (d.includes("amazon"))   return "📦";
+  if (d.includes("apple"))    return "🍎";
+  if (d.includes("github"))   return "🐙";
+  if (d.includes("slack"))    return "💬";
+  if (d.includes("discord"))  return "🎮";
+  if (d.includes("twitter") || d.includes("x.com")) return "🐦";
+  if (d.includes("instagram")) return "📸";
+  if (d.includes("tiktok"))   return "🎵";
+  if (d.includes("adobe"))    return "🎨";
+  if (d.includes("dropbox"))  return "📂";
+  if (d.includes("openai") || d.includes("chatgpt")) return "🤖";
+  if (d.includes("notion"))   return "📝";
+  if (d.includes("figma"))    return "✏️";
+  if (d.includes("zoom"))     return "📹";
+  if (d.includes("linkedin")) return "💼";
+  if (d === "pasted text" || d.startsWith("[file]") || d.includes("pasted")) return "📄";
+  return "🌐";
+};
+
+const recentCases = [
+  {
+    company: "Adobe",
+    logo: "/logos/adobe.svg",
+    year: "2024",
+    amount: "FTC lawsuit",
+    clause: "Hidden cancellation fees",
+    what: "FTC sued Adobe for burying a $291 early termination fee in fine print. Users who tried to cancel were hit with charges they never knew about.",
+    outcome: "Ongoing — FTC demanding refunds for millions of users",
+    color: "#ef4444",
+  },
+  {
+    company: "Google",
+    logo: "/logos/github.svg",
+    year: "2022",
+    amount: "$391.5M",
+    clause: "Secret location tracking",
+    what: "40 US states settled with Google after it continued tracking users' locations even after they turned off 'Location History' — hidden in a separate setting.",
+    outcome: "Settled for $391.5 million — largest privacy settlement ever at the time",
+    color: "#f59e0b",
+  },
+  {
+    company: "Spotify",
+    logo: "/logos/spotify.svg",
+    year: "2023",
+    amount: "Class action",
+    clause: "Unilateral price hike",
+    what: "Spotify raised Premium prices by 10–17% citing a clause that lets them change pricing 'at any time.' Users filed a class action arguing they were locked into annual plans with no recourse.",
+    outcome: "Case ongoing — users seeking refunds for locked-in contracts",
+    color: "#22c55e",
+  },
+  {
+    company: "Zoom",
+    logo: "/logos/openai.svg",
+    year: "2023",
+    amount: "$85M",
+    clause: "Data shared with Facebook & Google",
+    what: "Zoom's privacy policy allowed it to share user data with third parties including Facebook, without clear disclosure. A class action followed after the practice was exposed.",
+    outcome: "Settled for $85 million — $15–25 per affected user",
+    color: "#3b82f6",
+  },
+  {
+    company: "Dropbox",
+    logo: "/logos/dropbox.svg",
+    year: "2023",
+    amount: "$10.25M",
+    clause: "Auto-renewal trap",
+    what: "Users sued Dropbox for automatically billing annual plan renewals with no reminder email, making cancellation deliberately difficult to find in account settings.",
+    outcome: "Settled for $10.25 million",
+    color: "#0ea5e9",
+  },
+  {
+    company: "Slack",
+    logo: "/logos/slack.svg",
+    year: "2022",
+    amount: "FTC warning",
+    clause: "Forced arbitration + class action waiver",
+    what: "Slack's T&Cs required all disputes to go to private arbitration and waived users' rights to class action lawsuits — even for data breaches affecting millions.",
+    outcome: "Pressure led to updated terms; FTC issued guidance on such clauses",
+    color: "#7c3aed",
+  },
 ];
 
 // ── Animated counter hook ─────────────────────────────────────────────────
@@ -94,24 +188,24 @@ function SkeletonCard({ h = 110, delay = 0 }: { h?: number; delay?: number }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function ScanPage() {
-  const [activeTab, setActiveTab] = useState<"url" | "paste" | "file" | "camera">("url");
   const [input, setInput] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const fileInputRef   = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const { status } = useSession();
+  const [sidebarPlan, setSidebarPlan] = useState<"free" | "pro">("free");
 
   // history state
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [animated, setAnimated] = useState(false);
   const [barWidths, setBarWidths] = useState<number[]>([]);
-  const currentTip = useRef(tips[Math.floor(Math.random() * tips.length)]).current;
+  const [caseIndex, setCaseIndex] = useState(() => Math.floor(Math.random() * recentCases.length));
 
   useEffect(() => {
     // Wait until next-auth confirms the session is valid before fetching
@@ -129,6 +223,17 @@ export default function ScanPage() {
         setHistoryLoading(false);
         setTimeout(() => setAnimated(true), 80);
       });
+  }, [status]);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setSidebarPlan("free");
+      return;
+    }
+    fetch("/api/account/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setSidebarPlan(data?.plan === "pro" ? "pro" : "free"))
+      .catch(() => setSidebarPlan("free"));
   }, [status]);
 
   // Animate bar widths after animated=true
@@ -169,11 +274,6 @@ export default function ScanPage() {
     .slice(0, 5)
     .map(([clause, count]) => ({ clause, count }));
 
-  const chartData = scans
-    .slice(0, 6)
-    .reverse()
-    .map((s) => ({ name: s.website || "unknown", score: s.score }));
-
   // ── Animated counters ────────────────────────────────────────────────────
   const animTotalScans = useCountUp(totalScans, animated);
   const animAvgScore   = useCountUp(avgRiskScore, animated);
@@ -203,6 +303,8 @@ export default function ScanPage() {
         const next = prev + 1;
         if (next >= scanStages.length - 1) {
           clearInterval(interval);
+          // Mark the step we're leaving (e.g. "Assessing risk level") done before showing the final stage.
+          setCompletedStages((c) => (c.includes(prev) ? c : [...c, prev]));
           return scanStages.length - 1;
         }
         setCompletedStages((c) => [...c, prev]);
@@ -215,21 +317,15 @@ export default function ScanPage() {
 
   // ── Scan handler ──────────────────────────────────────────────────────────
   const handleScan = async () => {
-    if (activeTab === "file" || activeTab === "camera") {
-      if (!file) {
-        setError(activeTab === "camera"
-          ? "Please take or upload a photo first."
-          : "Please select or drop a file to upload.");
-        return;
-      }
-    } else {
-      if (!input.trim()) { setError("Please enter a URL or paste Terms & Conditions text."); return; }
+    if (!file && !input.trim()) {
+      setError("Please enter a URL, paste text, or attach a file / photo.");
+      return;
     }
     setError("");
     setScanLoading(true);
     try {
       let res: Response;
-      if ((activeTab === "file" || activeTab === "camera") && file) {
+      if (file) {
         const fd = new FormData();
         fd.append("file", file);
         res = await fetch("/api/scan", { method: "POST", body: fd });
@@ -243,8 +339,7 @@ export default function ScanPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Something went wrong. Please try again."); return; }
       sessionStorage.setItem("scanResult", JSON.stringify(data));
-      sessionStorage.setItem("scanInput",
-        (activeTab === "file" || activeTab === "camera") ? (file?.name ?? "") : input.trim());
+      sessionStorage.setItem("scanInput", file ? (file.name ?? "") : input.trim());
       router.push("/results");
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -253,10 +348,18 @@ export default function ScanPage() {
     }
   };
 
-  // ── Image preview helper ──────────────────────────────────────────────────
+  // ── File / image helpers ──────────────────────────────────────────────────
+  const handleDocFile = (f: File | null) => {
+    setFile(f);
+    setImagePreview(null);
+    setInput("");
+    if (error) setError("");
+  };
+
   const handleImageFile = (f: File | null) => {
     setFile(f);
     setImagePreview(null);
+    setInput("");
     if (error) setError("");
     if (!f) return;
     const reader = new FileReader();
@@ -411,7 +514,7 @@ export default function ScanPage() {
       <FlagLinkSidebar
         collapsible
         scansUsed={scansUsed}
-        plan="free"
+        plan={sidebarPlan}
       />
 
       <main className="pt-16 pb-20">
@@ -451,240 +554,179 @@ export default function ScanPage() {
               Ready to scan?
             </h2>
             <p className="text-center text-xs text-gray-400 mb-5">
-              Add a link, paste text, or upload a file.
+              Paste a URL, type text, or attach a file or photo.
             </p>
 
-            {/* Tab switcher */}
+            {/* Hidden file inputs */}
+            <input ref={fileInputRef}   type="file" accept=".txt,.pdf,.docx" hidden
+              onChange={(e) => { handleDocFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden
+              onChange={(e) => { handleImageFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+
+            {/* ── Compose box ──────────────────────────────────────────── */}
             <div style={{
-              display: "flex", gap: 4, marginBottom: 16,
-              background: "#f5f4f0", borderRadius: 14, padding: 4,
+              position: "relative",
+              border: `1.5px solid ${error ? "#fca5a5" : "#e2e1db"}`,
+              borderRadius: 16,
+              background: "#f9f8f5",
+              transition: "border-color 0.2s",
+              marginBottom: 4,
             }}>
-              {([
-                { id: "url",    label: "Link",   icon: "🔗" },
-                { id: "paste",  label: "Paste",  icon: "📋" },
-                { id: "file",   label: "Upload", icon: "📎" },
-                { id: "camera", label: "Camera", icon: "📷" },
-              ] as const).map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); setError(""); setFile(null); setImagePreview(null); }}
-                  style={{
-                    flex: 1, padding: "7px 0", borderRadius: 10, border: "none",
-                    background: activeTab === tab.id ? "#ffffff" : "transparent",
-                    boxShadow: activeTab === tab.id ? "0 1px 6px rgba(0,0,0,0.09)" : "none",
-                    fontSize: 11, fontWeight: 600,
-                    color: activeTab === tab.id ? "#0f172a" : "#94a3b8",
-                    cursor: "pointer", transition: "all 0.18s",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-                  }}
-                >
-                  <span>{tab.icon}</span>{tab.label}
-                </button>
-              ))}
-            </div>
 
-            {/* URL tab */}
-            {activeTab === "url" && (
-              <input
-                type="url"
-                value={input}
-                onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
-                placeholder="https://spotify.com/terms"
-                disabled={scanLoading}
-                className="w-full rounded-xl bg-[#f9f8f5] border border-[#e2e1db] px-4 py-3 text-sm text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] mb-4"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              />
-            )}
-
-            {/* Paste tab */}
-            {activeTab === "paste" && (
-              <textarea
-                value={input}
-                onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
-                placeholder={"Paste the full Terms & Conditions text here…"}
-                disabled={scanLoading}
-                rows={6}
-                className="w-full resize-y rounded-xl bg-[#f9f8f5] border border-[#e2e1db] px-4 py-3 text-sm leading-relaxed text-[#0f172a] placeholder-[#aaa] outline-none transition-shadow focus:border-[#4f46e5] focus:shadow-[0_0_0_3px_rgba(79,70,229,0.08)] mb-4"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              />
-            )}
-
-            {/* Upload tab */}
-            {activeTab === "file" && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".txt,.pdf,.docx"
-                  hidden
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setFile(f);
-                    if (error) setError("");
-                  }}
-                />
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    const dropped = e.dataTransfer.files?.[0] ?? null;
-                    setFile(dropped);
-                    if (error) setError("");
-                  }}
-                  style={{
-                    border: `2px dashed ${dragOver ? "#4f46e5" : file ? "#22c55e" : "#d1d5db"}`,
-                    borderRadius: 14,
-                    background: dragOver ? "#ede9fe" : file ? "#f0fdf4" : "#f9f8f5",
-                    padding: "28px 20px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    marginBottom: 16,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {file ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 44, height: 44, borderRadius: "50%",
-                        background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 20,
-                      }}>✅</div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#15803d", margin: 0 }}>{file.name}</p>
-                      <p style={{ fontSize: 11, color: "#86efac", margin: 0 }}>
-                        {(file.size / 1024).toFixed(1)} KB · Click to change
-                      </p>
+              {/* Attachment preview strip (shown when file selected) */}
+              {file && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 12px 0",
+                }}>
+                  {imagePreview ? (
+                    // Image thumbnail
+                    <div style={{ position: "relative", display: "inline-block" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imagePreview} alt="preview"
+                        style={{ height: 56, width: 56, borderRadius: 8, objectFit: "cover", display: "block", border: "1px solid #e2e1db" }} />
+                      <button onClick={() => { setFile(null); setImagePreview(null); }}
+                        style={{
+                          position: "absolute", top: -6, right: -6,
+                          width: 18, height: 18, borderRadius: "50%",
+                          background: "#ef4444", border: "none", color: "#fff",
+                          fontSize: 10, fontWeight: 700, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>✕</button>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 44, height: 44, borderRadius: "50%",
-                        background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 22,
-                      }}>📎</div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: 0 }}>
-                        Drop your file here, or click to browse
-                      </p>
-                      <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>
-                        Supports .PDF, .TXT, .DOCX · Max 10 MB
-                      </p>
+                    // File chip
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      background: "#ede9fe", borderRadius: 8, padding: "4px 10px",
+                    }}>
+                      <span style={{ fontSize: 14 }}>
+                        {file.name.endsWith(".pdf") ? "📄" : file.name.endsWith(".docx") ? "📝" : "📃"}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#4f46e5", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {file.name}
+                      </span>
+                      <span style={{ fontSize: 10, color: "#a5b4fc" }}>
+                        {(file.size / 1024).toFixed(0)}KB
+                      </span>
+                      <button onClick={() => { setFile(null); setImagePreview(null); }}
+                        style={{
+                          background: "none", border: "none", color: "#a5b4fc",
+                          fontSize: 13, cursor: "pointer", padding: "0 0 0 2px", lineHeight: 1,
+                        }}>✕</button>
                     </div>
                   )}
                 </div>
-              </>
-            )}
+              )}
 
-            {/* Camera tab */}
-            {activeTab === "camera" && (
-              <>
-                {/* Hidden inputs — one for gallery, one for live camera */}
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  hidden
-                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
+              {/* Text area — hidden when a file/image is attached */}
+              {!file && (
+                <textarea
+                  value={input}
+                  onChange={(e) => { setInput(e.target.value); if (error) setError(""); }}
+                  placeholder="Paste a URL (e.g. https://spotify.com/terms) or T&C text…"
+                  disabled={scanLoading}
+                  rows={4}
+                  style={{
+                    width: "100%", resize: "none", background: "transparent",
+                    border: "none", outline: "none",
+                    padding: "14px 52px 14px 14px",
+                    fontSize: 13, lineHeight: 1.6,
+                    color: "#0f172a", fontFamily: "'DM Sans', sans-serif",
+                    boxSizing: "border-box",
+                  }}
                 />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => handleImageFile(e.target.files?.[0] ?? null)}
-                />
+              )}
 
-                {imagePreview ? (
-                  // ── Preview ──────────────────────────────────────────────
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "2px solid #e0e7ff" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imagePreview}
-                        alt="T&C preview"
-                        style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block" }}
-                      />
-                      {/* Retake overlay */}
+              {/* Spacer row with icons when file attached */}
+              {file && <div style={{ height: 12 }} />}
+
+              {/* Bottom icon row */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "6px 8px 8px",
+              }}>
+
+                {/* Left: + button with popup */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setShowAttachMenu((v) => !v)}
+                    title="Attach"
+                    style={{
+                      width: 34, height: 34, borderRadius: "50%", border: "none",
+                      background: showAttachMenu ? "#4f46e5" : "#ede9fe",
+                      color: showAttachMenu ? "#fff" : "#4f46e5",
+                      fontSize: 20, fontWeight: 300, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "background 0.18s, color 0.18s",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {showAttachMenu ? "×" : "+"}
+                  </button>
+
+                  {/* Popup menu */}
+                  {showAttachMenu && (
+                    <div style={{
+                      position: "absolute", bottom: "calc(100% + 8px)", left: 0,
+                      background: "#fff", border: "1px solid #e5e7eb",
+                      borderRadius: 14, boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
+                      overflow: "hidden", zIndex: 20, minWidth: 180,
+                      animation: "popIn 0.18s ease",
+                    }}>
                       <button
-                        onClick={() => { setFile(null); setImagePreview(null); }}
-                        style={{
-                          position: "absolute", top: 8, right: 8,
-                          background: "rgba(0,0,0,0.55)", border: "none",
-                          color: "#fff", borderRadius: 20, padding: "4px 10px",
-                          fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        onClick={() => {
+                          fileInputRef.current?.click();
+                          setShowAttachMenu(false);
                         }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          width: "100%", padding: "11px 16px", border: "none",
+                          background: "transparent", cursor: "pointer",
+                          fontSize: 13, fontWeight: 500, color: "#374151",
+                          textAlign: "left",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        ✕ Remove
+                        <span style={{
+                          width: 30, height: 30, borderRadius: 8, background: "#ede9fe",
+                          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0,
+                        }}>📎</span>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: 12 }}>Upload file</p>
+                          <p style={{ margin: 0, fontSize: 10, color: "#9ca3af" }}>PDF, DOCX, TXT</p>
+                        </div>
                       </button>
                     </div>
-                    <p style={{ fontSize: 11, color: "#22c55e", textAlign: "center", marginTop: 8, fontWeight: 600 }}>
-                      ✅ {file?.name} ready to scan
-                    </p>
-                  </div>
-                ) : (
-                  // ── Empty state ──────────────────────────────────────────
-                  <div style={{
-                    border: "2px dashed #d1d5db", borderRadius: 14,
-                    background: "#f9f8f5", padding: "24px 16px",
-                    marginBottom: 16,
-                  }}>
-                    {/* Icon */}
-                    <div style={{ textAlign: "center", marginBottom: 16 }}>
-                      <div style={{
-                        width: 52, height: 52, borderRadius: "50%",
-                        background: "#ede9fe", margin: "0 auto 10px",
-                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-                      }}>📷</div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", margin: "0 0 4px" }}>
-                        Take or upload a photo
-                      </p>
-                      <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>
-                        Point your camera at a printed T&amp;C, screenshot, or signage
-                      </p>
-                    </div>
+                  )}
+                </div>
 
-                    {/* Two action buttons */}
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button
-                        onClick={() => cameraInputRef.current?.click()}
-                        style={{
-                          flex: 1, padding: "10px 0", borderRadius: 12,
-                          border: "1.5px solid #4f46e5", background: "#4f46e5",
-                          color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        }}
-                      >
-                        📸 Open Camera
-                      </button>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        style={{
-                          flex: 1, padding: "10px 0", borderRadius: 12,
-                          border: "1.5px solid #e2e1db", background: "#fff",
-                          color: "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                        }}
-                      >
-                        🖼️ Choose Photo
-                      </button>
-                    </div>
-                    <p style={{ fontSize: 10, color: "#cbd5e1", textAlign: "center", marginTop: 10 }}>
-                      JPG · PNG · WEBP · HEIC supported
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+                {/* Right: camera button */}
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  title="Take photo"
+                  style={{
+                    width: 34, height: 34, borderRadius: "50%", border: "none",
+                    background: imagePreview ? "#4f46e5" : "#ede9fe",
+                    color: imagePreview ? "#fff" : "#4f46e5",
+                    fontSize: 16, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background 0.18s",
+                  }}
+                >
+                  📷
+                </button>
+              </div>
+            </div>
 
-            {error && <p className="text-xs text-red-700 mb-3">{error}</p>}
+            {error && <p className="text-xs text-red-600 mt-1 mb-3 px-1">{error}</p>}
 
             <button
               type="button"
               onClick={handleScan}
-              disabled={scanLoading || (activeTab === "file" || activeTab === "camera" ? !file : !input.trim())}
-              className="w-full h-[50px] rounded-full bg-[#4f46e5] text-white flex items-center justify-center gap-2 font-semibold text-sm transition-all hover:bg-[#4338ca] hover:shadow-[0_8px_24px_rgba(79,70,229,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={scanLoading || (!file && !input.trim())}
+              className="w-full h-[50px] rounded-full bg-[#4f46e5] text-white flex items-center justify-center gap-2 font-semibold text-sm transition-all hover:bg-[#4338ca] hover:shadow-[0_8px_24px_rgba(79,70,229,0.25)] disabled:opacity-60 disabled:cursor-not-allowed mt-4"
             >
               <span>Scan for Red Flags</span><ArrowIcon />
             </button>
@@ -696,22 +738,44 @@ export default function ScanPage() {
 
         {/* ── 3. Quick Scan Pills ──────────────────────────────────────── */}
         <div className="w-full max-w-3xl mx-auto px-4 mb-8" style={fadeCard(0.22)}>
-          <p className="text-xs text-gray-400 mb-2 text-center">Try a popular service:</p>
-          <div className="flex flex-wrap gap-2 justify-center">
+          <p className="text-xs text-gray-400 mb-3 text-center">Try a popular service:</p>
+          <div className="flex flex-wrap gap-3 justify-center">
             {[
-              { label: "Spotify",  url: "https://www.spotify.com/legal/end-user-agreement/" },
-              { label: "Netflix",  url: "https://help.netflix.com/legal/termsofuse" },
-              { label: "OpenAI",   url: "https://openai.com/policies/terms-of-use" },
-              { label: "Adobe",    url: "https://www.adobe.com/legal/terms.html" },
-              { label: "Dropbox",  url: "https://www.dropbox.com/terms" },
-              { label: "Slack",    url: "https://slack.com/terms-of-service" },
-            ].map(({ label, url }, i) => (
+              { label: "Spotify",  logo: "/logos/spotify.svg",  url: "https://www.spotify.com/legal/end-user-agreement/" },
+              { label: "Netflix",  logo: "/logos/netflix.svg",  url: "https://help.netflix.com/legal/termsofuse" },
+              { label: "OpenAI",   logo: "/logos/openai.svg",   url: "https://openai.com/policies/terms-of-use" },
+              { label: "Adobe",    logo: "/logos/adobe.svg",    url: "https://www.adobe.com/legal/terms.html" },
+              { label: "Dropbox",  logo: "/logos/dropbox.svg",  url: "https://www.dropbox.com/terms" },
+              { label: "Slack",    logo: "/logos/slack.svg",    url: "https://slack.com/terms-of-service" },
+            ].map(({ label, logo, url }, i) => (
               <button
                 key={label}
-                onClick={() => setInput(url)}
-                className="text-xs font-medium px-3 py-1.5 rounded-full bg-indigo-50 text-[#4f46e5] hover:bg-indigo-100 transition-colors border border-indigo-100"
-                style={animated ? { animation: "popIn 0.4s ease both", animationDelay: `${0.26 + i * 0.04}s` } : { opacity: 0 }}
+                onClick={() => { setInput(url); setFile(null); setImagePreview(null); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  padding: "7px 14px 7px 10px",
+                  borderRadius: 99,
+                  background: "#ffffff",
+                  border: "1.5px solid #e5e7eb",
+                  cursor: "pointer",
+                  fontSize: 12, fontWeight: 600, color: "#374151",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
+                  ...(animated ? { animation: "popIn 0.4s ease both", animationDelay: `${0.26 + i * 0.04}s` } : { opacity: 0 }),
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#a5b4fc";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(79,70,229,0.12)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                  e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.06)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt={label} style={{ width: 18, height: 18, objectFit: "contain", flexShrink: 0 }} />
                 {label}
               </button>
             ))}
@@ -724,78 +788,72 @@ export default function ScanPage() {
             <><SkeletonCard h={240} delay={0.1} /><SkeletonCard h={240} delay={0.2} /></>
           ) : (
             <>
-              {/* Recent Scans */}
+              {/* Recent Scans — animated component */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
                 style={fadeCard(0.28)}>
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">
-                  Recent Scans
-                  {totalScans === 0 && (
-                    <span className="ml-2 text-xs font-normal text-gray-400">— none yet</span>
-                  )}
-                </h3>
-                {totalScans === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-8">
-                    Your scan history will appear here.
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    {recentScans.map((scan, i) => (
-                      <div key={scan.id}
-                        className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-                        style={animated ? { animation: "slideIn 0.4s ease both", animationDelay: `${0.3 + i * 0.06}s` } : { opacity: 0 }}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ background: scoreColor(scan.score) }} />
-                          <span className="text-sm font-medium text-gray-800 truncate">{scan.domain}</span>
-                          <span className="text-xs text-gray-400 flex-shrink-0">{scan.date}</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: scoreColor(scan.score) + "18", color: scoreColor(scan.score) }}>
-                            {scan.verdict}
-                          </span>
-                          <span className="text-sm font-bold w-7 text-right"
-                            style={{ color: scoreColor(scan.score) }}>
-                            {scan.score}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <RecentScans
+                  isLoading={historyLoading}
+                  onScanClick={(id) => {
+                    const s = scans.find((r) => r.id === id);
+                    if (!s) return;
+                    pushSavedScanToResults(s, router);
+                  }}
+                  scans={recentScans.map((s): RScanItem => ({
+                    id: s.id,
+                    domain: s.domain,
+                    score: s.score,
+                    verdict: s.verdict,
+                    flags: (scans.find((r) => r.id === s.id)?.redFlags ?? []).length,
+                    time: s.date,
+                    icon: domainIcon(s.domain),
+                    color: s.score >= 56 ? "red" : s.score >= 31 ? "amber" : "green",
+                  }))}
+                />
               </div>
 
               {/* Top Red Flags */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
                 style={fadeCard(0.34)}>
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">
-                  Top Red Flags Found
-                  {topRedFlags.length === 0 && (
-                    <span className="ml-2 text-xs font-normal text-gray-400">— none yet</span>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-sm font-bold text-gray-900">Top Red Flags Found</h3>
+                  {topRedFlags.length > 0 && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                      Occurrences
+                    </span>
                   )}
-                </h3>
+                </div>
+
                 {topRedFlags.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-8">
                     Red flag patterns across your scans will appear here.
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {topRedFlags.map((flag, i) => (
-                      <div key={i}
-                        style={animated ? { animation: "fadeUp 0.4s ease both", animationDelay: `${0.36 + i * 0.07}s` } : { opacity: 0 }}>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-xs text-gray-700 font-medium truncate pr-2">{flag.clause}</span>
-                          <span className="text-xs font-bold text-gray-400 flex-shrink-0">{flag.count}×</span>
+                  <div className="space-y-4">
+                    {topRedFlags.map((flag, i) => {
+                      const maxCount = topRedFlags[0]?.count || 1;
+                      const percent = Math.round((flag.count / maxCount) * 100);
+                      return (
+                        <div key={i} className="group">
+                          <div className="flex justify-between items-end mb-2 gap-4">
+                            <p className="text-sm font-medium text-gray-600 truncate group-hover:text-gray-900 transition-colors duration-200">
+                              {flag.clause}
+                            </p>
+                            <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-100 shadow-sm flex-shrink-0">
+                              {flag.count}x
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-50 rounded-full h-1.5 overflow-hidden border border-gray-100">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: animated ? `${percent}%` : "0%" }}
+                              transition={{ duration: 1, delay: i * 0.1, ease: [0.34, 1.2, 0.64, 1] }}
+                              className="bg-gradient-to-r from-red-400 to-red-500 h-full rounded-full"
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                          <div className="h-1.5 rounded-full bg-[#ef4444]"
-                            style={{
-                              width: barWidths[i] !== undefined ? `${barWidths[i]}%` : "0%",
-                              transition: `width 0.9s cubic-bezier(0.4,0,0.2,1) ${i * 0.1}s`,
-                            }} />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -803,63 +861,80 @@ export default function ScanPage() {
           )}
         </div>
 
-        {/* ── 5. Risk Score Chart + Did You Know ───────────────────────── */}
-        <div className="w-full max-w-3xl mx-auto px-4 mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ── 5. Real Lawsuits (full width) ────────────────────────────── */}
+        <div className="w-full max-w-3xl mx-auto px-4 mb-8">
           {historyLoading ? (
-            <><SkeletonCard h={230} delay={0.15} /><SkeletonCard h={230} delay={0.25} /></>
+            <SkeletonCard h={230} delay={0.15} />
           ) : (
-            <>
-              {/* Bar Chart */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
-                style={fadeCard(0.42)}>
-                <h3 className="text-sm font-semibold text-gray-800 mb-4">Risk Score by Domain</h3>
-                {chartData.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-12">
-                    Chart will populate after your first scan.
-                  </p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 20, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#9ca3af" }}
-                        tickLine={false} axisLine={false} interval={0}
-                        angle={-30} textAnchor="end" height={44} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#9ca3af" }}
-                        tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
-                        formatter={(value) => [`${value}`, "Risk Score"]}
-                        cursor={{ fill: "rgba(0,0,0,0.03)" }}
-                      />
-                      <Bar dataKey="score" radius={[4, 4, 0, 0]} maxBarSize={30}
-                        isAnimationActive={true} animationDuration={900} animationEasing="ease-out">
-                        {chartData.map((entry, index) => (
-                          <Cell key={index} fill={scoreColor(entry.score)} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
+            (() => {
+              const c = recentCases[caseIndex];
+              return (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col"
+                  style={fadeCard(0.42)}>
 
-              {/* Did You Know */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col justify-between"
-                style={fadeCard(0.48)}>
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xl">💡</span>
-                    <h3 className="text-sm font-semibold text-gray-800">Did You Know?</h3>
+                  {/* Header */}
+                  <div style={{ padding: "14px 20px 10px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#ef4444" }}>⚖️</span>
+                      <h3 className="text-sm font-semibold text-gray-800">Real Lawsuits</h3>
+                    </div>
+                    {/* Dot nav */}
+                    <div style={{ display: "flex", gap: 5 }}>
+                      {recentCases.map((_, i) => (
+                        <button key={i} onClick={() => setCaseIndex(i)}
+                          style={{ width: i === caseIndex ? 16 : 6, height: 6, borderRadius: 99, border: "none", cursor: "pointer", transition: "width 0.2s, background 0.2s", background: i === caseIndex ? "#4f46e5" : "#e2e8f0" }} />
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">{currentTip}</p>
+
+                  {/* Case content */}
+                  <div style={{ padding: "18px 20px", flex: 1 }}>
+                    {/* Company + year + amount */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.logo} alt={c.company} style={{ width: 26, height: 26, objectFit: "contain", flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{c.company}</span>
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.year}</span>
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: c.color, background: c.color + "15", padding: "2px 9px", borderRadius: 99 }}>
+                          {c.amount}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Clause tag */}
+                    <div style={{ marginBottom: 10 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", background: "#f1f5f9", padding: "3px 10px", borderRadius: 6 }}>
+                        🚩 {c.clause}
+                      </span>
+                    </div>
+
+                    {/* What happened */}
+                    <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.65, marginBottom: 10 }}>{c.what}</p>
+
+                    {/* Outcome */}
+                    <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "8px 12px" }}>
+                      <p style={{ fontSize: 12, color: "#15803d", fontWeight: 600, margin: 0 }}>📋 {c.outcome}</p>
+                    </div>
+                  </div>
+
+                  {/* Footer nav */}
+                  <div style={{ padding: "10px 20px", borderTop: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <button onClick={() => setCaseIndex((caseIndex - 1 + recentCases.length) % recentCases.length)}
+                      style={{ fontSize: 12, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>
+                      ← Prev
+                    </button>
+                    <span style={{ fontSize: 11, color: "#cbd5e1" }}>{caseIndex + 1} / {recentCases.length}</span>
+                    <button onClick={() => setCaseIndex((caseIndex + 1) % recentCases.length)}
+                      style={{ fontSize: 12, color: "#4f46e5", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>
+                      Next →
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-6 pt-4 border-t border-gray-50">
-                  <p className="text-xs text-gray-400">
-                    FlagLink AI has analyzed{" "}
-                    <span className="font-semibold text-gray-600">10,000+</span> documents and counting.
-                  </p>
-                </div>
-              </div>
-            </>
+              );
+            })()
           )}
         </div>
 

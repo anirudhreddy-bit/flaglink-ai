@@ -31,7 +31,7 @@ export default function RiskBadge({
 }: {
   riskLevel: ScanResult["riskLevel"];
 }) {
-  const c = colorMap[riskLevel];
+  const c = colorMap[riskLevel ?? "green"];
 
   return (
     <div

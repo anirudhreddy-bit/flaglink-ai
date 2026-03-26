@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { FlagLinkSidebar } from "@/components/ui/flaglink-sidebar";
 
 // ── Password rules ────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ const labelStyle = {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName]   = useState("");
   const [email, setEmail]         = useState("");
@@ -95,6 +97,7 @@ export default function SettingsPage() {
     // Step 1: verify current password
     const verify = await fetch("/api/account/password-reset", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "verify-old-password", oldPassword: currentPwd }),
     });
@@ -107,6 +110,7 @@ export default function SettingsPage() {
     // Step 2: reset password
     const reset = await fetch("/api/account/password-reset", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "reset-password", newPassword: newPwd }),
     });
@@ -122,20 +126,52 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    fetch("/api/account/profile")
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => {
+    if (sessionStatus === "loading") return;
+
+    if (sessionStatus === "unauthenticated") {
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent("/settings")}`);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setError("");
+    setLoading(true);
+
+    fetch("/api/account/profile", { credentials: "include" })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          const msg =
+            r.status === 401
+              ? "Session expired. Please sign in again."
+              : typeof data.error === "string"
+                ? data.error
+                : `Could not load profile (${r.status}).`;
+          throw new Error(msg);
+        }
+        return data;
+      })
+      .then((data) => {
+        if (cancelled) return;
         const parts = (data.name ?? "").split(" ");
         setFirstName(parts[0] ?? "");
         setLastName(parts.slice(1).join(" ") ?? "");
         setEmail(data.email ?? "");
-        setLoading(false);
       })
-      .catch(() => {
-        setError("Could not load profile.");
-        setLoading(false);
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load profile.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus, router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,6 +181,7 @@ export default function SettingsPage() {
 
     const res = await fetch("/api/account/profile", {
       method: "PATCH",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ firstName, lastName, email }),
     });

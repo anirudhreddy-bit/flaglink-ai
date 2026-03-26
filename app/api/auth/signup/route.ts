@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Dynamic imports for Vercel compatibility
-    const { db } = await import("@/lib/db");
+    const { db, ensureUserBillingSchema } = await import("@/lib/db");
+    await ensureUserBillingSchema();
     const { users } = await import("@/lib/db/schema");
     const { eq } = await import("drizzle-orm");
     const bcrypt = (await import("bcryptjs")).default;

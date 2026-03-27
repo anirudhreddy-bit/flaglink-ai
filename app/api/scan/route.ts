@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+/** Large scans (big PDFs); increase on Vercel Pro if needed (Hobby max is 10s). */
+export const maxDuration = 300;
+
+/** Max upload size for multipart scans (self-hosted / generous platforms). Vercel request bodies are often capped much lower unless you use direct blob upload. */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+/**
+ * Anthropic PDF document blocks accept limited decoded PDF size; above this we cannot fall back to vision when text extraction is empty.
+ */
+const MAX_PDF_FOR_DOCUMENT_BLOCK_BYTES = 32 * 1024 * 1024;
+
 const SYSTEM_PROMPT = `You are FlagLink AI — an expert legal clause analyst specialized in consumer Terms & Conditions, Privacy Policies, SaaS agreements, and subscription contracts.
 
 Your job is to protect regular people from hidden traps in legal documents they don't have time to read. You explain everything in plain English — no legal jargon. You are not a lawyer and must never give legal advice. You are an AI analysis tool.
@@ -197,20 +208,33 @@ async function fetchPageText(url: string): Promise<string> {
   return text;
 }
 
+/** PDF: extract text; if almost empty (scanned PDF), optionally return base64 for Claude document API (size-limited). */
+async function readPdfForScan(file: File): Promise<{
+  text: string;
+  documentBase64: string | null;
+  name: string;
+}> {
+  const name = file.name.replace(/\.[^.]+$/, "");
+  const ab = await file.arrayBuffer();
+  // unpdf/pdf.js can detach the ArrayBuffer passed into extractText; never pass a view of `ab` directly.
+  const bytesForExtract = new Uint8Array(ab).slice();
+  const { extractText } = await import("unpdf");
+  const pages = await extractText(bytesForExtract, { mergePages: true });
+  const text = Array.isArray(pages) ? pages.join("\n") : String(pages);
+  const negligible = text.trim().length < 50;
+  let documentBase64: string | null = null;
+  if (negligible && ab.byteLength <= MAX_PDF_FOR_DOCUMENT_BLOCK_BYTES) {
+    documentBase64 = Buffer.from(ab).toString("base64");
+  }
+  return { text, documentBase64, name };
+}
+
 async function extractTextFromFile(file: File): Promise<{ text: string; name: string }> {
   const name = file.name.replace(/\.[^.]+$/, ""); // strip extension
-  const ext  = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
   if (ext === "txt") {
     const text = await file.text();
-    return { text, name };
-  }
-
-  if (ext === "pdf") {
-    const arrayBuffer = await file.arrayBuffer();
-    const { extractText } = await import("unpdf");
-    const pages = await extractText(new Uint8Array(arrayBuffer), { mergePages: true });
-    const text = Array.isArray(pages) ? pages.join("\n") : String(pages);
     return { text, name };
   }
 
@@ -244,6 +268,7 @@ export async function POST(request: NextRequest) {
     let hadTextFileUpload = false;
     let imageBase64: string | null = null;
     let imageMediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | null = null;
+    let pdfDocumentBase64: string | null = null;
 
     const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic"];
 
@@ -253,11 +278,14 @@ export async function POST(request: NextRequest) {
       if (!file || file.size === 0) {
         return NextResponse.json({ error: "No file received." }, { status: 400 });
       }
-      if (file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: "File too large. Maximum size is 10 MB." }, { status: 400 });
+      if (file.size > MAX_UPLOAD_BYTES) {
+        return NextResponse.json(
+          { error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB.` },
+          { status: 400 }
+        );
       }
 
-      uploadedFileName = file.name.replace(/\.[^.]+$/, "");
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
 
       if (IMAGE_TYPES.includes(file.type.toLowerCase())) {
         // Vision path — send image directly to Claude
@@ -266,9 +294,32 @@ export async function POST(request: NextRequest) {
         // Normalise heic → jpeg for Claude
         const mt = file.type.toLowerCase().replace("image/heic", "image/jpeg").replace("image/jpg", "image/jpeg");
         imageMediaType = mt as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
-      } else {
-        // Text-extraction path (PDF / DOCX / TXT)
+        uploadedFileName = file.name.replace(/\.[^.]+$/, "");
+      } else if (ext === "pdf") {
         hadTextFileUpload = true;
+        try {
+          const pdf = await readPdfForScan(file);
+          uploadedFileName = pdf.name;
+          input = pdf.text;
+          pdfDocumentBase64 = pdf.documentBase64;
+          if (pdf.text.trim().length < 50 && !pdf.documentBase64) {
+            return NextResponse.json(
+              {
+                error: `This PDF has very little selectable text (typical of scanned pages). We can analyze those with AI vision for PDFs up to ${MAX_PDF_FOR_DOCUMENT_BLOCK_BYTES / (1024 * 1024)} MB. This file is larger — try a smaller or text-based PDF, split the document, or paste the terms here.`,
+              },
+              { status: 400 }
+            );
+          }
+        } catch (e: unknown) {
+          return NextResponse.json(
+            { error: e instanceof Error ? e.message : "Could not read PDF." },
+            { status: 400 }
+          );
+        }
+      } else {
+        // DOCX / TXT
+        hadTextFileUpload = true;
+        uploadedFileName = file.name.replace(/\.[^.]+$/, "");
         try {
           const extracted = await extractTextFromFile(file);
           input = extracted.text;
@@ -311,6 +362,31 @@ export async function POST(request: NextRequest) {
             {
               type: "text",
               text: "This image contains Terms & Conditions or a legal document. Read every visible word in the image and analyze it as specified. Return ONLY the JSON.",
+            },
+          ],
+        }],
+      });
+    } else if (pdfDocumentBase64) {
+      // ── PDF document path (scanned / image-based PDFs with no text layer) ─
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "document",
+              title: uploadedFileName ?? "document",
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: pdfDocumentBase64,
+              },
+            },
+            {
+              type: "text",
+              text: "This PDF contains Terms & Conditions, a privacy policy, or a similar legal agreement. Read it and analyze it per your instructions. Return ONLY the JSON object.",
             },
           ],
         }],

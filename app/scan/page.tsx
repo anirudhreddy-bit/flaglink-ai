@@ -316,9 +316,15 @@ export default function ScanPage() {
   }, [scanLoading]);
 
   // ── Scan handler ──────────────────────────────────────────────────────────
+  const MAX_FILE_BYTES = 100 * 1024 * 1024;
+
   const handleScan = async () => {
     if (!file && !input.trim()) {
       setError("Please enter a URL, paste text, or attach a file / photo.");
+      return;
+    }
+    if (file && file.size > MAX_FILE_BYTES) {
+      setError(`File is too large. Maximum size is ${MAX_FILE_BYTES / (1024 * 1024)} MB.`);
       return;
     }
     setError("");
@@ -607,7 +613,9 @@ export default function ScanPage() {
                         {file.name}
                       </span>
                       <span style={{ fontSize: 10, color: "#a5b4fc" }}>
-                        {(file.size / 1024).toFixed(0)}KB
+                        {file.size >= 1024 * 1024
+                          ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                          : `${(file.size / 1024).toFixed(0)} KB`}
                       </span>
                       <button onClick={() => { setFile(null); setImagePreview(null); }}
                         style={{
@@ -695,7 +703,9 @@ export default function ScanPage() {
                         }}>📎</span>
                         <div>
                           <p style={{ margin: 0, fontWeight: 600, fontSize: 12 }}>Upload file</p>
-                          <p style={{ margin: 0, fontSize: 10, color: "#9ca3af" }}>PDF, DOCX, TXT</p>
+                          <p style={{ margin: 0, fontSize: 10, color: "#9ca3af" }}>
+                            PDF, DOCX, TXT — up to 100 MB
+                          </p>
                         </div>
                       </button>
                     </div>
